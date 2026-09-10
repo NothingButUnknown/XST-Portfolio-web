@@ -31,54 +31,92 @@
   const SNAP_EASE_K = 6; // exponential smoothing constant for the idle rest-on-integer spring
   const CHASE_EASE_K = 8; // exponential smoothing constant for arrow/click targetPos chases
   const IDLE_RESUME_MS = 1200; // delay after interaction ends before drift resumes
-  const VISIBLE_RANGE = 5; // how many card-positions to either side stay visible
 
   const length = artists.length;
 
+  // A short roster (this client has 7) only spans a few hundred px at
+  // card-width — nowhere near wide enough to fill a big desktop monitor, so
+  // the row left the two edges of the track empty. Render the roster
+  // repeated back-to-back (same trick the labels ticker already uses) until
+  // there are enough cards to fill a very wide track; on a long roster
+  // REPEAT collapses to 1 and nothing changes.
+  const MIN_TRACK_CARDS = 24;
+  const REPEAT = Math.max(1, Math.ceil(MIN_TRACK_CARDS / length));
+  const trackLength = length * REPEAT;
+
+  // How many card-positions to either side stay visible. Used to be a fixed
+  // 5, which is enough cards to fill a laptop-width track but leaves the two
+  // edges empty (missing cards) on a wide desktop monitor where the track is
+  // much wider. Compute it from the actual track width instead, so there's
+  // always enough cards rendered on both sides to reach past the edges.
+  let VISIBLE_RANGE = 5;
+
+  function updateVisibleRange() {
+    const { spacing } = layoutConfig();
+    const halfTrack = artistTrack.clientWidth / 2;
+    // Cards needed to cover from center to edge, plus a couple extra so
+    // cards are already in place (not popping in) as they drift into view.
+    const needed = Math.ceil(halfTrack / spacing) + 2;
+    VISIBLE_RANGE = Math.max(5, Math.min(needed, Math.floor(trackLength / 2)));
+  }
+
   // ---------- build cards: image + caption (credit line / name / stat line) ----------
-  const cards = artists.map((artist, index) => {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = "artist-card";
-    card.dataset.index = String(index);
-    card.setAttribute("role", "option");
-    card.setAttribute("aria-label", artist.name);
+  // trackIndex (0..trackLength-1) is this card's fixed slot in the repeated
+  // row; artistIndex (0..length-1) is which real artist it shows.
+  const cards = [];
+  for (let repeat = 0; repeat < REPEAT; repeat += 1) {
+    artists.forEach((artist, artistIndex) => {
+      const trackIndex = repeat * length + artistIndex;
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "artist-card";
+      card.dataset.index = String(artistIndex);
+      card.setAttribute("role", "option");
+      card.setAttribute("aria-label", artist.name);
+      if (repeat > 0) {
+        // Repeats beyond the first are decorative fill — same content, so
+        // hide them from the a11y tree/tab order instead of announcing the
+        // same artist several times over.
+        card.setAttribute("aria-hidden", "true");
+        card.tabIndex = -1;
+      }
 
-    const art = document.createElement("div");
-    art.className = "artist-card-art";
-    const img = document.createElement("img");
-    img.src = artist.img;
-    img.alt = "";
-    img.draggable = false;
-    img.loading = index < 4 ? "eager" : "lazy";
-    img.decoding = "async";
-    art.appendChild(img);
-    card.appendChild(art);
+      const art = document.createElement("div");
+      art.className = "artist-card-art";
+      const img = document.createElement("img");
+      img.src = artist.img;
+      img.alt = "";
+      img.draggable = false;
+      img.loading = trackIndex < 4 ? "eager" : "lazy";
+      img.decoding = "async";
+      art.appendChild(img);
+      card.appendChild(art);
 
-    const caption = document.createElement("div");
-    caption.className = "artist-card-caption";
+      const caption = document.createElement("div");
+      caption.className = "artist-card-caption";
 
-    const credit = document.createElement("p");
-    credit.className = "artist-card-credit";
-    credit.textContent = artist.role || "";
-    caption.appendChild(credit);
+      const credit = document.createElement("p");
+      credit.className = "artist-card-credit";
+      credit.textContent = artist.role || "";
+      caption.appendChild(credit);
 
-    const title = document.createElement("p");
-    title.className = "artist-card-title";
-    title.textContent = artist.name || "";
-    caption.appendChild(title);
+      const title = document.createElement("p");
+      title.className = "artist-card-title";
+      title.textContent = artist.name || "";
+      caption.appendChild(title);
 
-    const stat = document.createElement("p");
-    stat.className = "artist-card-stat";
-    stat.textContent = artist.note || "";
-    caption.appendChild(stat);
+      const stat = document.createElement("p");
+      stat.className = "artist-card-stat";
+      stat.textContent = artist.note || "";
+      caption.appendChild(stat);
 
-    card.appendChild(caption);
+      card.appendChild(caption);
 
-    card.addEventListener("click", () => goToIndex(index));
-    artistTrack.appendChild(card);
-    return card;
-  });
+      card.addEventListener("click", () => chaseToTrack(trackIndex));
+      artistTrack.appendChild(card);
+      cards.push(card);
+    });
+  }
 
   // ---------- state ----------
   let pos = 0; // continuous position (float) — offset = card index - pos
@@ -100,9 +138,9 @@
   }
 
   function wrapOffset(offset) {
-    offset = offset % length;
-    if (offset > length / 2) offset -= length;
-    if (offset < -length / 2) offset += length;
+    offset = offset % trackLength;
+    if (offset > trackLength / 2) offset -= trackLength;
+    if (offset < -trackLength / 2) offset += trackLength;
     return offset;
   }
 
@@ -124,23 +162,22 @@
   }
 
   // ---------- targeted moves (arrows / card click) ----------
-  function currentModIndex() {
-    return ((Math.round(pos) % length) + length) % length;
+  function currentTrackPos() {
+    return ((Math.round(pos) % trackLength) + trackLength) % trackLength;
   }
 
-  function chaseTo(index) {
+  // Chases straight to the clicked card's own slot (not just "the artist,
+  // wherever the nearest copy is") — with the roster repeated, that's the
+  // slot the user actually pointed at.
+  function chaseToTrack(trackIndex) {
     const roundedPos = Math.round(pos);
-    const curMod = currentModIndex();
-    let delta = index - curMod;
-    if (delta > length / 2) delta -= length;
-    if (delta < -length / 2) delta += length;
+    const cur = currentTrackPos();
+    let delta = trackIndex - cur;
+    if (delta > trackLength / 2) delta -= trackLength;
+    if (delta < -trackLength / 2) delta += trackLength;
     targetPos = roundedPos + delta;
     targetSpeed = 0;
     restartIdleTimer();
-  }
-
-  function goToIndex(index) {
-    chaseTo(((index % length) + length) % length);
   }
 
   function stepArrow(delta) {
@@ -238,8 +275,12 @@
     rafId = sectionVisible ? requestAnimationFrame(frame) : null;
   }
 
-  window.addEventListener("resize", layout);
+  window.addEventListener("resize", () => {
+    updateVisibleRange();
+    layout();
+  });
 
+  updateVisibleRange();
   layout();
 
   // Start the loop unconditionally on load — don't wait for the observer's

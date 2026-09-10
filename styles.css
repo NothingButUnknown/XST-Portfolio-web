@@ -608,7 +608,7 @@ a {
 .work-title {
   font-weight: 900;
   font-stretch: 125%;
-  font-size: clamp(3rem, 10vw, 8.5rem);
+  font-size: clamp(2.25rem, 7.5vw, 6.5rem);
   letter-spacing: -0.04em;
   line-height: 0.95;
 }
@@ -619,7 +619,7 @@ a {
   will-change: transform;
 }
 
-.work-title span {
+.work-title span:not(.letter) {
   color: var(--xst-red);
 }
 

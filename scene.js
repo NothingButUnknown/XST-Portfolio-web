@@ -3,6 +3,11 @@ const sceneInner = document.querySelector("#sceneInner");
 const sceneWeb = document.querySelector("#sceneWeb");
 const indexReadout = document.querySelector("#indexReadout");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Coarse-pointer devices (phones/tablets) are typically weaker GPUs/CPUs
+// rendering at a higher devicePixelRatio, and the O(n^2) connecting-web
+// lines below (~300 stroke() calls/frame for 25 nodes) is the single
+// heaviest part of this scene. Cheapen both on touch devices.
+const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 
 const catalogue = JSON.parse(document.querySelector("#catalogue").textContent);
 
@@ -211,7 +216,10 @@ let cachedSceneOffsetTop = 0;
 
 const resizeSceneWeb = () => {
   if (!sceneWeb || !scene) return;
-  const ratio = window.devicePixelRatio || 1;
+  // Cap the backing-store ratio on phones — a 3x-DPR phone screen otherwise
+  // asks the canvas to fill 9x the pixels of a 1x screen for no visible gain
+  // at this element's on-screen size.
+  const ratio = Math.min(window.devicePixelRatio || 1, isCoarsePointer ? 1.5 : 3);
   const rect = scene.getBoundingClientRect();
   const innerRect = sceneInner.getBoundingClientRect();
   webWidth = rect.width;
@@ -297,8 +305,16 @@ const render = () => {
     webContext.lineCap = "round";
     const activeGlow = coverGlow[activeIndex] || FALLBACK_GLOW;
 
+    // Full n^2 pairing (~300 stroke() calls for 25 nodes) is the costliest
+    // part of this render. On coarse-pointer devices only pair each node
+    // with its next few neighbours in draw order — visually still a dense
+    // web (points are already spread by the golden-angle layout, so nearby
+    // indices are nearby in space) but a fraction of the stroke calls.
+    const neighbourSpan = isCoarsePointer ? 4 : projectedPoints.length;
+
     projectedPoints.forEach((point, index) => {
-      for (let nextIndex = index + 1; nextIndex < projectedPoints.length; nextIndex += 1) {
+      const end = Math.min(index + neighbourSpan, projectedPoints.length);
+      for (let nextIndex = index + 1; nextIndex < end; nextIndex += 1) {
         const nextPoint = projectedPoints[nextIndex];
         const dx = point.x - nextPoint.x;
         const dy = point.y - nextPoint.y;
@@ -309,8 +325,8 @@ const render = () => {
 
         const isActiveConnection = point.active || nextPoint.active;
         const alpha = Math.max(
-          isActiveConnection ? 0.34 : 0.14,
-          Math.min(0.82, (1.18 + averageDepth) * (1 - distance / (radius * 0.78)) * (isActiveConnection ? 0.78 : 0.46))
+          isActiveConnection ? 0.42 : 0.24,
+          Math.min(0.88, (1.18 + averageDepth) * (1 - distance / (radius * 0.78)) * (isActiveConnection ? 0.82 : 0.6))
         ) * loadProgress;
 
         webContext.beginPath();
@@ -318,8 +334,8 @@ const render = () => {
         webContext.lineTo(nextPoint.x, nextPoint.y);
         webContext.strokeStyle = isActiveConnection
           ? `rgba(${activeGlow}, ${alpha})`
-          : `rgba(220, 221, 225, ${alpha * 0.55})`;
-        webContext.lineWidth = isActiveConnection ? 2.4 : 1;
+          : `rgba(220, 221, 225, ${alpha * 0.8})`;
+        webContext.lineWidth = isActiveConnection ? 2.6 : 1.3;
         webContext.stroke();
       }
     });
@@ -518,7 +534,7 @@ const workGrid = (() => {
   const resize = () => {
     if (!contactSection) return;
     const rect = contactSection.getBoundingClientRect();
-    dpr = window.devicePixelRatio || 1;
+    dpr = Math.min(window.devicePixelRatio || 1, isCoarsePointer ? 1.5 : 3);
     canvas.width = Math.max(1, Math.round(rect.width * dpr));
     canvas.height = Math.max(1, Math.round(rect.height * dpr));
     canvas.style.width = `${rect.width}px`;

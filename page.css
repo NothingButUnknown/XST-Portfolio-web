@@ -234,4 +234,54 @@
   .hub-link {
     transition: none;
   }
+
+  /* Intro: show instantly, no fade, no travel. */
+  .is-loading body,
+  .is-loading [data-intro] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .is-ready body,
+  .is-ready [data-intro] {
+    transition: none;
+  }
 }
+
+/* ============================================================
+   page-load intro — one orchestrated fade on refresh.
+   Armed by the inline <head> script (html.is-loading), released
+   by the inline script before scene.js (html.is-ready).
+   No-JS never gets .is-loading, so the page renders normally.
+   ============================================================ */
+
+:root {
+  --intro-dur: 0.5s;
+  --intro-step: 60ms;
+}
+
+.is-loading body {
+  opacity: 0;
+}
+
+.is-ready body {
+  opacity: 1;
+  transition: opacity var(--intro-dur) var(--ease);
+}
+
+.is-loading [data-intro] {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.is-ready [data-intro] {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--intro-dur) var(--ease),
+    transform var(--intro-dur) var(--ease);
+  transition-delay: calc(var(--intro-step) * var(--intro-i, 0));
+}
+
+.is-ready [data-intro="1"] { --intro-i: 1; }
+.is-ready [data-intro="2"] { --intro-i: 2; }
+.is-ready [data-intro="3"] { --intro-i: 3; }

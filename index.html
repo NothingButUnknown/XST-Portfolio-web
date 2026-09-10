@@ -17,9 +17,12 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="page.css" />
     <link rel="stylesheet" href="carousel.css" />
+    <script>
+      document.documentElement.classList.add("is-loading");
+    </script>
   </head>
   <body>
-    <header class="site-nav" id="siteNav">
+    <header class="site-nav" id="siteNav" data-intro="1">
       <div class="site-nav-inner">
         <a class="wordmark" href="#top"><img src="assets/xst-logo.png" alt="XST" /></a>
         <nav class="site-nav-links" aria-label="Primary">
@@ -39,12 +42,12 @@
       <section class="section hero" id="about" aria-label="About XST">
         <div class="dot-pattern" aria-hidden="true"></div>
         <div class="container hero-inner">
-          <h1 class="hero-heading">Cover art that stops the scroll.</h1>
-          <p class="hero-copy">
+          <h1 class="hero-heading" data-intro="2">Cover art that stops the scroll.</h1>
+          <p class="hero-copy" data-intro="3">
             Every good song needs cover art that grabs someone before they hit play. The art is the
             first thing they see, and it's what makes them curious enough to listen.
           </p>
-          <p class="hero-copy">
+          <p class="hero-copy" data-intro="3">
             XST designs covers, banners, logos, and posters — mostly for funk, phonk, and montagem
             artists. Red, chrome, black. Fast turnarounds, files delivered finished.
           </p>
@@ -200,6 +203,22 @@
       ["INTERTONE", "EPSILE", "SUNDAY", "SCARSCHEME", "RYLARIS", "POLARIS", "GRYND"]
     </script>
 
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var done = false;
+        function reveal() {
+          if (done) return;
+          done = true;
+          root.classList.remove("is-loading");
+          root.classList.add("is-ready");
+        }
+        var fonts = document.fonts && document.fonts.ready;
+        if (fonts) fonts.then(function () { requestAnimationFrame(reveal); });
+        else requestAnimationFrame(reveal);
+        setTimeout(reveal, 1200);
+      })();
+    </script>
     <script src="scene.js"></script>
     <script src="carousel.js"></script>
   </body>
