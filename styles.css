@@ -10,7 +10,12 @@
   --hairline-strong: rgba(220, 221, 225, 0.24);
   --dur: 0.62s;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --bar-height: 64px;
+  /* Sphere sized off its own tile extent (see .scene-inner / .cover-node),
+     not raw viewport units — keeps every tile inside the .scene box at any
+     window aspect ratio instead of only at tall/narrow ones. */
+  --sphere: min(72vw, 60vh, 640px);
+  --tile: calc(var(--sphere) * 0.22);
+  --tile-radius: 12px;
 }
 
 * {
@@ -19,11 +24,13 @@
   padding: 0;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   width: 100%;
-  height: 100%;
-  overflow: hidden;
   background: var(--void);
   color: var(--chrome);
   font-family: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -32,11 +39,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-body {
-  background:
-    radial-gradient(65% 50% at 50% 42%, rgba(224, 27, 27, 0.14), transparent 72%),
-    radial-gradient(100% 75% at 50% 118%, rgba(90, 8, 8, 0.2), transparent 75%),
-    var(--void);
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 button {
@@ -57,10 +63,10 @@ a {
   outline-offset: 3px;
 }
 
-/* ---------- dot pattern ---------- */
+/* ---------- dot pattern (scoped to the hero, see page.css for placement) ---------- */
 
 .dot-pattern {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
@@ -73,15 +79,18 @@ a {
 /* ---------- scene ---------- */
 
 .scene {
-  position: fixed;
-  inset: 0 0 var(--bar-height) 0;
+  position: relative;
+  width: 100%;
+  height: min(88vh, 900px);
   display: flex;
   align-items: center;
   justify-content: center;
   perspective: 1400px;
   cursor: grab;
   outline: none;
-  touch-action: none;
+  /* Horizontal drag still spins the sphere; a vertical swipe is left for the
+     browser to scroll the page with, instead of being trapped in here. */
+  touch-action: pan-y;
 }
 
 .scene.is-dragging {
@@ -105,15 +114,15 @@ a {
 .scene-inner {
   position: relative;
   z-index: 1;
-  width: min(76vw, 70vh);
-  height: min(76vw, 70vh);
+  width: var(--sphere);
+  height: var(--sphere);
 }
 
 .cover-node {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 148px;
+  width: var(--tile);
   aspect-ratio: 1 / 1;
   --glow-rgb: 224, 27, 27;
   will-change: transform, opacity;
@@ -128,7 +137,8 @@ a {
   -webkit-user-drag: none;
   user-select: none;
   pointer-events: none;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 12px 28px -10px rgba(0, 0, 0, 0.8);
+  border-radius: var(--tile-radius);
+  box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.8);
   transition: transform 0.9s var(--ease), box-shadow 0.25s ease, filter 0.25s ease;
 }
 
@@ -152,14 +162,13 @@ a {
 .cover-node:hover img,
 .cover-node:focus-visible img {
   filter: brightness(1.12);
-  box-shadow: 0 0 0 1px rgba(220, 221, 225, 0.5), 0 18px 40px -12px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.9);
 }
 
 .cover-node.is-active img {
   box-shadow:
-    0 0 0 2px rgba(var(--glow-rgb), 0.95),
-    0 0 30px 4px rgba(var(--glow-rgb), 0.5),
-    0 0 70px 14px rgba(var(--glow-rgb), 0.3);
+    0 0 30px 4px rgba(var(--glow-rgb), 0.6),
+    0 0 70px 14px rgba(var(--glow-rgb), 0.38);
 }
 
 /* The pulse used to animate box-shadow's blur radius directly, which repaints
@@ -171,9 +180,9 @@ a {
   content: "";
   position: absolute;
   inset: 0;
+  border-radius: var(--tile-radius);
   pointer-events: none;
   box-shadow:
-    0 0 0 2px rgba(var(--glow-rgb), 1),
     0 0 42px 8px rgba(var(--glow-rgb), 0.78),
     0 0 96px 22px rgba(var(--glow-rgb), 0.48);
   opacity: 0;
@@ -283,36 +292,19 @@ a {
   }
 }
 
-/* ---------- bars ---------- */
-
-.top-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.75rem 2rem 0;
-  pointer-events: none;
-}
-
-.top-bar > * {
-  pointer-events: auto;
-}
+/* ---------- nav wordmark + index readout (nav chrome itself lives in page.css) ---------- */
 
 .wordmark {
-  font-weight: 900;
-  font-stretch: 125%;
-  font-size: 1.4rem;
-  letter-spacing: -0.03em;
-  background: linear-gradient(178deg, #fff 0%, #b9bcc4 36%, #5c5f66 51%, #e6e8ec 72%, #8e9198 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  display: inline-flex;
+  align-items: center;
   user-select: none;
   -webkit-user-select: none;
+}
+
+.wordmark img {
+  height: 28px;
+  width: auto;
+  display: block;
 }
 
 .index-readout {
@@ -322,134 +314,6 @@ a {
   letter-spacing: 0.06em;
   color: var(--chrome-dim);
   font-variant-numeric: tabular-nums;
-}
-
-.dock {
-  position: fixed;
-  top: 6.5rem;
-  left: 2rem;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 0.45rem;
-  border-radius: 20px;
-  border: 1px solid var(--hairline);
-  background: rgba(13, 13, 15, 0.62);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.4);
-}
-
-.dock-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  color: var(--chrome-dim);
-  will-change: width, height;
-  transition: color 0.2s ease, background-color 0.2s ease;
-}
-
-.dock-item svg {
-  width: 46%;
-  height: 46%;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.dock-item:hover,
-.dock-item:focus-visible {
-  color: var(--chrome);
-  background: var(--hairline);
-}
-
-.dock-item.is-active {
-  color: var(--xst-red-hot);
-}
-
-.dock-item.is-active::after {
-  content: "";
-  position: absolute;
-  left: -0.7rem;
-  top: 50%;
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--xst-red-hot);
-  transform: translateY(-50%);
-}
-
-.dock-label {
-  position: absolute;
-  left: calc(100% + 0.85rem);
-  top: 50%;
-  transform: translateY(-50%) translateX(-4px);
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  border: 1px solid var(--hairline);
-  background: var(--panel-raised);
-  font-weight: 600;
-  font-stretch: 112.5%;
-  font-size: 0.68rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--chrome);
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.16s ease, transform 0.16s ease;
-}
-
-.dock-item:hover .dock-label,
-.dock-item:focus-visible .dock-label {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-}
-
-.bottom-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: var(--bar-height);
-  z-index: 10;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2rem;
-  border-top: 1px solid var(--hairline);
-  background: var(--void);
-}
-
-.bar-link {
-  font-weight: 600;
-  font-stretch: 112.5%;
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--chrome-dim);
-  transition: color 0.2s ease;
-}
-
-.bar-link:hover {
-  color: var(--chrome);
-}
-
-.bar-brand {
-  font-weight: 600;
-  font-stretch: 112.5%;
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--chrome);
 }
 
 /* ---------- overlays ---------- */
@@ -663,18 +527,8 @@ a {
   box-shadow: 0 0 0 2px var(--xst-red);
 }
 
-/* panel overlays (about / shop / contact) */
-
-.panel-overlay {
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-.panel-body {
-  max-width: 62ch;
-  margin: 0 auto;
-  padding: 7rem 2rem 5rem;
-}
+/* section eyebrow + title — shared by the artists section heading (its
+   stage/carousel styling lives in carousel.css) */
 
 .panel-eyebrow {
   font-weight: 600;
@@ -695,235 +549,10 @@ a {
   margin-bottom: 1.5rem;
 }
 
-.panel-body p {
-  line-height: 1.65;
-  margin-bottom: 1.2rem;
-}
+/* Artist row (.artist-stage, .artist-track, .artist-card, the labels
+   ticker, etc.) lives entirely in carousel.css now — see that file. */
 
-.panel-body .button-primary {
-  margin-top: 1rem;
-}
-
-/* artists overlay — coverflow carousel of collaborators */
-
-.artists-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 6.5rem 2rem 3rem;
-}
-
-.artists-body .panel-eyebrow,
-.artists-body .panel-title {
-  max-width: 62ch;
-}
-
-.artists-body .panel-title {
-  margin-bottom: 3rem;
-}
-
-.artist-stage {
-  width: 100%;
-  max-width: 840px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 3rem 2.5rem 2.25rem;
-  border-radius: 32px;
-  border: 1px solid var(--hairline-strong);
-  background:
-    radial-gradient(120% 140% at 50% 0%, rgba(224, 27, 27, 0.1), transparent 60%),
-    linear-gradient(180deg, var(--panel-raised), #0a0a0b);
-  box-shadow: 0 40px 80px -32px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-.artist-carousel {
-  position: relative;
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.artist-arrow {
-  position: absolute;
-  top: 50%;
-  z-index: 200;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(10, 10, 11, 0.6);
-  border: 1px solid var(--hairline-strong);
-  color: var(--chrome);
-  backdrop-filter: blur(6px);
-  transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s var(--ease), color 0.25s ease;
-}
-
-.artist-arrow--left {
-  left: 0;
-  transform: translateY(-50%);
-}
-
-.artist-arrow--right {
-  right: 0;
-  transform: translateY(-50%);
-}
-
-.artist-arrow svg {
-  width: 19px;
-  height: 19px;
-  stroke: currentColor;
-  stroke-width: 2;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.artist-arrow:hover,
-.artist-arrow:focus-visible {
-  background: var(--xst-red);
-  border-color: var(--xst-red);
-  color: #fff;
-  transform: translateY(-50%) scale(1.06);
-}
-
-.artist-arrow:active {
-  transform: translateY(-50%) scale(0.92);
-}
-
-.artist-track {
-  position: relative;
-  flex: 1 1 auto;
-  height: 250px;
-  min-width: 0;
-  perspective: 1600px;
-  perspective-origin: 50% 50%;
-}
-
-.artist-card {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 196px;
-  aspect-ratio: 1 / 1;
-  border-radius: 26px;
-  overflow: hidden;
-  cursor: pointer;
-  background: var(--panel-raised);
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 24px 48px -16px rgba(0, 0, 0, 0.9);
-  transition: transform 0.6s var(--ease), opacity 0.6s var(--ease), box-shadow 0.4s ease;
-}
-
-.artist-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  -webkit-user-drag: none;
-  user-select: none;
-  pointer-events: none;
-}
-
-.artist-card.is-active {
-  box-shadow: 0 0 0 2px var(--xst-red), 0 0 40px 6px rgba(224, 27, 27, 0.3), 0 28px 56px -16px rgba(0, 0, 0, 0.95);
-}
-
-.artist-card:not(.is-active):hover {
-  box-shadow: 0 0 0 1px rgba(220, 221, 225, 0.4), 0 24px 48px -16px rgba(0, 0, 0, 0.9);
-}
-
-.artist-info {
-  width: 100%;
-  max-width: 380px;
-  margin-top: 2.25rem;
-  padding-top: 1.75rem;
-  border-top: 1px solid var(--hairline-strong);
-  min-height: 92px;
-}
-
-.artist-meta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 0.85rem;
-}
-
-.artist-index {
-  font-weight: 600;
-  font-stretch: 112.5%;
-  font-size: 0.72rem;
-  letter-spacing: 0.02em;
-  color: var(--chrome-dim);
-  font-variant-numeric: tabular-nums;
-  padding: 0.3em 0.75em;
-  border-radius: 999px;
-  border: 1px solid var(--hairline-strong);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.artist-name {
-  font-weight: 900;
-  font-stretch: 125%;
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  letter-spacing: -0.02em;
-  margin-bottom: 0.5rem;
-}
-
-.artist-role {
-  font-weight: 600;
-  font-stretch: 112.5%;
-  color: var(--xst-red-hot);
-  font-size: 0.78rem;
-  padding: 0.3em 0.85em;
-  border-radius: 999px;
-  background: rgba(224, 27, 27, 0.14);
-  border: 1px solid rgba(224, 27, 27, 0.35);
-}
-
-.artist-note {
-  font-weight: 400;
-  color: var(--chrome-dim);
-  font-size: 0.88rem;
-  line-height: 1.5;
-}
-
-@media (max-width: 600px) {
-  .artists-body {
-    padding: 5.5rem 1.25rem 2.5rem;
-  }
-
-  .artist-stage {
-    padding: 2.25rem 1.25rem 1.75rem;
-    border-radius: 26px;
-  }
-
-  .artist-carousel {
-    gap: 0.75rem;
-  }
-
-  .artist-track {
-    height: 190px;
-  }
-
-  .artist-card {
-    width: 150px;
-    border-radius: 20px;
-  }
-
-  .artist-meta {
-    flex-wrap: wrap;
-  }
-}
-
-/* work / contact overlay */
+/* work / contact footer */
 
 .work-grid {
   position: absolute;
@@ -1045,36 +674,6 @@ a {
 /* ---------- responsive ---------- */
 
 @media (max-width: 900px) {
-  .scene-inner {
-    width: min(78vw, 78vh);
-    height: min(78vw, 78vh);
-  }
-
-  .dock {
-    top: auto;
-    bottom: calc(var(--bar-height) + 1.25rem);
-    left: 50%;
-    flex-direction: row;
-    transform: translateX(-50%);
-  }
-
-  .dock-item.is-active::after {
-    left: 50%;
-    top: -0.55rem;
-    transform: translateX(-50%);
-  }
-
-  .dock-label {
-    left: 50%;
-    top: calc(100% + 0.85rem);
-    transform: translateX(-50%) translateY(-4px);
-  }
-
-  .dock-item:hover .dock-label,
-  .dock-item:focus-visible .dock-label {
-    transform: translateX(-50%) translateY(0);
-  }
-
   .detail-body {
     flex-direction: column;
     justify-content: flex-start;
@@ -1089,21 +688,8 @@ a {
 }
 
 @media (max-width: 600px) {
-  .top-bar {
-    padding: 1.25rem 1.25rem 0;
-  }
-
-  .bottom-bar {
-    padding: 0 1.25rem;
-    gap: 0.5rem;
-  }
-
-  .bar-brand {
-    display: none;
-  }
-
-  .cover-node {
-    width: 84px;
+  :root {
+    --tile: calc(var(--sphere) * 0.26);
   }
 
   .filmstrip {
@@ -1114,9 +700,5 @@ a {
   .filmstrip img {
     width: 44px;
     height: 44px;
-  }
-
-  .panel-body {
-    padding: 6rem 1.25rem 3rem;
   }
 }

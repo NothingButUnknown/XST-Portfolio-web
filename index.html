@@ -15,45 +15,120 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="page.css" />
+    <link rel="stylesheet" href="carousel.css" />
   </head>
   <body>
-    <div class="dot-pattern" aria-hidden="true"></div>
-
-    <div class="scene" id="scene" aria-label="Rotating gallery of XST cover art. Drag to rotate, use arrow keys, tap a piece to view it." tabindex="0">
-      <canvas class="scene-web" id="sceneWeb" aria-hidden="true"></canvas>
-      <div class="scene-inner" id="sceneInner"></div>
-    </div>
+    <header class="site-nav" id="siteNav">
+      <div class="site-nav-inner">
+        <a class="wordmark" href="#top"><img src="assets/xst-logo.png" alt="XST" /></a>
+        <nav class="site-nav-links" aria-label="Primary">
+          <a href="#work">Work</a>
+          <a href="#artists">Artists</a>
+          <a href="#contact">Contact</a>
+        </nav>
+      </div>
+    </header>
 
     <div class="cursor-dot" id="cursorDot" aria-hidden="true">
       <span class="cursor-label">Drag</span>
     </div>
 
-    <header class="top-bar">
-      <span class="wordmark">XST</span>
-      <span class="index-readout" id="indexReadout" aria-live="polite">— / 025</span>
-    </header>
+    <main id="top">
+      <!-- About / hero -->
+      <section class="section hero" id="about" aria-label="About XST">
+        <div class="dot-pattern" aria-hidden="true"></div>
+        <div class="container hero-inner">
+          <h1 class="hero-heading">Cover art that stops the scroll.</h1>
+          <p class="hero-copy">
+            Every good song needs cover art that grabs someone before they hit play. The art is the
+            first thing they see, and it's what makes them curious enough to listen.
+          </p>
+          <p class="hero-copy">
+            XST designs covers, banners, logos, and posters — mostly for funk, phonk, and montagem
+            artists. Red, chrome, black. Fast turnarounds, files delivered finished.
+          </p>
+        </div>
+      </section>
 
-    <nav class="dock" id="dock" aria-label="Primary navigation">
-      <button type="button" class="dock-item is-active" id="dockCover" aria-label="Cover art">
-        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2"></rect><path d="M3.5 15.5 9 10l3.5 3.5L16 10l4.5 5.5"></path><circle cx="8.5" cy="8" r="1.4"></circle></svg>
-        <span class="dock-label">Cover art</span>
-      </button>
-      <button type="button" class="dock-item" data-open="artists" aria-label="Artists">
-        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"></path></svg>
-        <span class="dock-label">Artists</span>
-      </button>
-      <button type="button" class="dock-item" data-open="contact" aria-label="Contact">
-        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"></path></svg>
-        <span class="dock-label">Contact</span>
-      </button>
-    </nav>
+      <!-- Hub: logo + Instagram link -->
+      <section class="section hub" id="hub" aria-label="Follow XST">
+        <div class="container hub-inner">
+          <img class="hub-logo" src="assets/xst-logo.png" alt="XST" />
+          <a
+            class="hub-link"
+            href="https://www.instagram.com/xst.graphic"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Instagram
+          </a>
+        </div>
+      </section>
 
-    <footer class="bottom-bar">
-      <button type="button" class="bar-link" data-open="about">About</button>
-      <span class="bar-brand">XST Graphic</span>
-    </footer>
+      <!-- Cover art scene: globe + connecting web -->
+      <section class="section work" id="work" aria-label="Cover art gallery">
+        <div class="container work-head">
+          <p class="section-eyebrow">Cover art</p>
+          <span class="index-readout" id="indexReadout">— / 025</span>
+        </div>
 
-    <!-- Detail overlay -->
+        <div class="scene" id="scene" aria-label="Rotating gallery of XST cover art. Drag to rotate, use arrow keys, tap a piece to view it." tabindex="0">
+          <canvas class="scene-web" id="sceneWeb" aria-hidden="true"></canvas>
+          <div class="scene-inner" id="sceneInner"></div>
+        </div>
+      </section>
+
+      <!-- Artists carousel -->
+      <section class="section artists" id="artists" aria-label="Artists on the roster">
+        <div class="container artists-head">
+          <p class="panel-eyebrow">Selected collaborations</p>
+          <h2 class="panel-title">Artists on the roster.</h2>
+        </div>
+
+        <div class="labels-ticker" aria-label="Labels XST has worked with">
+          <p class="ticker-eyebrow">Labels we've worked with</p>
+          <div class="ticker-mask">
+            <div class="ticker-track" id="labelsTrack"></div>
+          </div>
+        </div>
+
+        <div class="artist-stage">
+          <div class="artist-carousel">
+            <button type="button" class="artist-arrow artist-arrow--left" id="artistArrowLeft" aria-label="Previous artist">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M15 5 8 12l7 7"></path></svg>
+            </button>
+            <div class="artist-track" id="artistTrack" role="listbox" aria-label="Artists XST has worked with"></div>
+            <button type="button" class="artist-arrow artist-arrow--right" id="artistArrowRight" aria-label="Next artist">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contact footer -->
+      <footer class="section contact" id="contact" aria-label="Contact XST">
+        <canvas class="work-grid" id="workGrid" aria-hidden="true"></canvas>
+        <div class="work-body">
+          <img class="work-logo" src="assets/xst-logo.png" alt="XST" />
+          <p class="work-eyebrow"><span></span>Open for selected drops</p>
+          <h2 class="work-title">Let's work<br /><span>together.</span></h2>
+          <a class="work-cta" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer" aria-label="Message XST on Instagram">
+            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+              <path d="M7 17 17 7M9 7h8v8"></path>
+            </svg>
+          </a>
+          <p class="work-copy">
+            Send the brief, the references, and the timeline. Fastest way to a reply is a DM.
+          </p>
+          <a class="work-handle" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer">
+            @xst.graphic
+          </a>
+        </div>
+      </footer>
+    </main>
+
+    <!-- Detail overlay (cover lightbox — stays an overlay so opening a cover never moves you off the page) -->
     <section class="overlay detail-overlay" id="detailOverlay" aria-hidden="true" aria-labelledby="detailTitle">
       <button type="button" class="overlay-close" data-close="detail">Close</button>
       <div class="detail-body">
@@ -79,76 +154,6 @@
         </div>
       </div>
       <div class="filmstrip" id="filmstrip" role="listbox" aria-label="All pieces"></div>
-    </section>
-
-    <!-- About overlay -->
-    <section class="overlay panel-overlay" id="aboutOverlay" aria-hidden="true" aria-labelledby="aboutTitle">
-      <button type="button" class="overlay-close" data-close="about">Close</button>
-      <div class="panel-body">
-        <p class="panel-eyebrow">About</p>
-        <h2 class="panel-title" id="aboutTitle">XST turns visual aggression into identity.</h2>
-        <p>
-          Cover art, social branding, and digital drops built between tech pressure, underground
-          music artwork, and premium finish. Blood red, chrome, and black negative space, worked
-          until the piece looks like it costs more than it did.
-        </p>
-        <p>
-          Every piece in the sphere is a real delivered file. Drag it, spin it, open one, and
-          commission the same style for your own drop.
-        </p>
-      </div>
-    </section>
-
-    <!-- Artists overlay -->
-    <section class="overlay panel-overlay artists-overlay" id="artistsOverlay" aria-hidden="true" aria-labelledby="artistsTitle">
-      <button type="button" class="overlay-close" data-close="artists">Close</button>
-      <div class="artists-body">
-        <p class="panel-eyebrow">Selected collaborations</p>
-        <h2 class="panel-title" id="artistsTitle">Artists on the roster.</h2>
-
-        <div class="artist-stage">
-          <div class="artist-carousel">
-            <button type="button" class="artist-arrow artist-arrow--left" id="artistArrowLeft" aria-label="Previous artist">
-              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M15 5 8 12l7 7"></path></svg>
-            </button>
-            <div class="artist-track" id="artistTrack" role="listbox" aria-label="Artists XST has worked with"></div>
-            <button type="button" class="artist-arrow artist-arrow--right" id="artistArrowRight" aria-label="Next artist">
-              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
-            </button>
-          </div>
-
-          <div class="artist-info">
-            <div class="artist-meta">
-              <span class="artist-index" id="artistIndex">— / 00</span>
-              <span class="artist-role" id="artistRole"></span>
-            </div>
-            <h3 class="artist-name" id="artistName"></h3>
-            <p class="artist-note" id="artistNote"></p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Contact overlay -->
-    <section class="overlay panel-overlay work-overlay" id="contactOverlay" aria-hidden="true" aria-labelledby="contactTitle">
-      <canvas class="work-grid" id="workGrid" aria-hidden="true"></canvas>
-      <button type="button" class="overlay-close" data-close="contact">Close</button>
-      <div class="work-body">
-        <img class="work-logo" src="assets/xst-wordmark.png" alt="XST" />
-        <p class="work-eyebrow"><span></span>Open for selected drops</p>
-        <h2 class="work-title" id="contactTitle">Let's work<br /><span>together.</span></h2>
-        <a class="work-cta" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer" aria-label="Message XST on Instagram">
-          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-            <path d="M7 17 17 7M9 7h8v8"></path>
-          </svg>
-        </a>
-        <p class="work-copy">
-          Send the brief, the references, and the timeline. Fastest way to a reply is a DM.
-        </p>
-        <a class="work-handle" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer">
-          @xst.graphic
-        </a>
-      </div>
     </section>
 
     <script type="application/json" id="catalogue">
@@ -194,6 +199,12 @@
       ]
     </script>
 
+    <!-- Placeholder label roster — Calen sends the real names later, same pattern as #artistsData. -->
+    <script type="application/json" id="labelsData">
+      ["INTERTONE", "EPSILE", "SUNDAY", "SCARSCHEME", "RYLARIS", "POLARIS", "GRYND"]
+    </script>
+
     <script src="scene.js"></script>
+    <script src="carousel.js"></script>
   </body>
 </html>

@@ -1,0 +1,291 @@
+/* ============================================================
+   carousel.css — artists section: a decorative labels ticker on
+   top, a flat continuously-drifting artist row below. Loads after
+   styles.css and page.css, so it freely overrides both.
+   ============================================================ */
+
+/* ---------- section heading ---------- */
+
+.artists-head {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: clamp(2.5rem, 5vh, 3.5rem);
+}
+
+.artists .panel-eyebrow {
+  margin-bottom: 0.85rem;
+}
+
+.artists .panel-title {
+  margin-bottom: 0;
+}
+
+/* ---------- labels ticker (decorative, non-interactive) ---------- */
+
+.labels-ticker {
+  margin-bottom: clamp(3rem, 7vh, 4.5rem);
+}
+
+.ticker-eyebrow {
+  text-align: center;
+  font-weight: 600;
+  font-stretch: 112.5%;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--chrome-dim);
+  margin-bottom: 1.25rem;
+}
+
+.ticker-mask {
+  width: 100%;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.ticker-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  animation: ticker-scroll 32s linear infinite;
+}
+
+.ticker-track.is-paused {
+  animation-play-state: paused;
+}
+
+.ticker-item {
+  flex: 0 0 auto;
+  padding: 0 clamp(1.5rem, 3vw, 2.5rem);
+  font-weight: 900;
+  font-stretch: 125%;
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1px var(--hairline-strong);
+  white-space: nowrap;
+  user-select: none;
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    /* Content is rendered twice back-to-back in the DOM (carousel.js), so
+       -50% is exactly one full set — the loop point is seamless. */
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+  }
+}
+
+/* ---------- artist stage: flat row, no bordered panel ---------- */
+
+.artist-stage {
+  width: 100%;
+}
+
+.artist-carousel {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- arrows: recede when idle, reveal on hover/focus ---------- */
+
+.artist-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 200;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 10, 11, 0.65);
+  border: 1px solid var(--hairline-strong);
+  color: var(--chrome);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.2s var(--ease),
+    color 0.25s ease, opacity 0.3s ease;
+}
+
+.artist-stage:hover .artist-arrow,
+.artist-stage:focus-within .artist-arrow {
+  opacity: 1;
+}
+
+.artist-arrow:focus-visible {
+  opacity: 1;
+}
+
+.artist-arrow svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.artist-arrow--left {
+  left: 0;
+  transform: translateY(-50%);
+}
+
+.artist-arrow--right {
+  right: 0;
+  transform: translateY(-50%);
+}
+
+.artist-arrow:hover,
+.artist-arrow:focus-visible {
+  background: var(--xst-red);
+  border-color: var(--xst-red);
+  color: #fff;
+  transform: translateY(-50%) scale(1.06);
+}
+
+/* ---------- track + cards (flat, uniform, edge-faded) ---------- */
+
+.artist-track {
+  position: relative;
+  width: 100%;
+  height: clamp(260px, 30vw, 320px);
+  min-width: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 6%, black 94%, transparent);
+}
+
+.artist-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(150px, 15vw, 190px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  cursor: pointer;
+  text-align: left;
+  /* Position is written every animation frame from JS — a CSS transition on
+     transform would fight that write and stutter. Only the hover lift
+     (a separate, JS-untouched property) transitions here. */
+}
+
+.artist-card-art {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--panel-raised);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 20px 40px -18px rgba(0, 0, 0, 0.9);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s ease;
+}
+
+.artist-card:hover .artist-card-art,
+.artist-card:focus-visible .artist-card-art {
+  transform: translateY(-4px);
+  box-shadow: 0 0 0 1px rgba(220, 221, 225, 0.35), 0 26px 48px -18px rgba(0, 0, 0, 0.95);
+}
+
+.artist-card-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.artist-card-caption {
+  margin-top: 0.85rem;
+  width: 100%;
+}
+
+.artist-card-credit {
+  font-weight: 500;
+  font-stretch: 100%;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  color: var(--chrome-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artist-card-title {
+  font-weight: 900;
+  font-stretch: 125%;
+  font-size: clamp(0.95rem, 1.4vw, 1.1rem);
+  letter-spacing: -0.01em;
+  color: var(--chrome);
+  margin-top: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.artist-card-stat {
+  font-weight: 500;
+  font-stretch: 100%;
+  font-size: 0.72rem;
+  color: var(--xst-red-hot);
+  margin-top: 0.3rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- mobile ---------- */
+
+@media (max-width: 600px) {
+  .artist-track {
+    height: clamp(190px, 52vw, 230px);
+  }
+
+  .artist-card {
+    width: clamp(110px, 30vw, 140px);
+  }
+
+  .artist-arrow {
+    width: 38px;
+    height: 38px;
+  }
+
+  .artist-arrow svg {
+    width: 17px;
+    height: 17px;
+  }
+}
+
+/* Touch/coarse-pointer devices have no hover to reveal the arrows on —
+   keep them visible (if dimmer) so keyboard-free touch users can still
+   jump directly instead of only watching the ambient drift. */
+@media (hover: none) {
+  .artist-arrow {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .artist-card-art {
+    transition: none;
+  }
+}

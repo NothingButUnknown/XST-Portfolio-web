@@ -335,8 +335,26 @@ const render = () => {
     });
   }
 
-  requestAnimationFrame(render);
+  renderLoopId = sceneVisible ? requestAnimationFrame(render) : null;
 };
+
+// The sphere sits well down the page now, so its rAF loop only needs to run
+// while it's actually on screen — pause it the rest of the time instead of
+// spinning 25 nodes + the web canvas for a section nobody can see.
+let sceneVisible = true;
+let renderLoopId = null;
+
+const sceneVisibilityObserver = new IntersectionObserver(
+  ([entry]) => {
+    sceneVisible = entry.isIntersecting;
+    if (sceneVisible && renderLoopId === null) {
+      resizeSceneWeb();
+      renderLoopId = requestAnimationFrame(render);
+    }
+  },
+  { threshold: 0.01 }
+);
+sceneVisibilityObserver.observe(scene);
 
 // ---------- pointer interaction ----------
 
@@ -397,19 +415,6 @@ scene.addEventListener("pointerup", finishDrag);
 scene.addEventListener("pointercancel", finishDrag);
 scene.addEventListener("lostpointercapture", finishDrag);
 
-// Scroll tilts the sphere up/down the same way dragging left/right spins it
-// sideways — no click-drag needed for the vertical axis.
-scene.addEventListener(
-  "wheel",
-  (event) => {
-    event.preventDefault();
-    idleSpin = 0;
-    velocityX = 0;
-    targetRotationX += event.deltaY * 0.05;
-  },
-  { passive: false }
-);
-
 // Shared by the keyboard arrows and the on-screen arrow buttons, so a tap
 // on a button eases the same way a keypress does.
 const rotateStep = (deltaX, deltaY) => {
@@ -420,9 +425,9 @@ const rotateStep = (deltaX, deltaY) => {
   targetRotationY += deltaY;
 };
 
-// Arrow keys work anywhere on the page, not just while the sphere has
-// focus — clicking into a card's own buttons (filmstrip thumb, rail pill,
-// bar link) still lets that element handle its own Enter/Space normally.
+// Arrow keys only spin the sphere when focus is actually inside it (or the
+// detail lightbox is open over it) — anywhere else on the page they do their
+// normal job, which on a scrolling page means scrolling.
 document.addEventListener("keydown", (event) => {
   const isArrow = event.key === "ArrowLeft" || event.key === "ArrowRight" || event.key === "ArrowUp" || event.key === "ArrowDown";
   if (!isArrow && event.key !== "Enter") return;
@@ -445,18 +450,9 @@ document.addEventListener("keydown", (event) => {
     return;
   }
 
-  // With the artists overlay open, left/right step the carousel instead of
-  // spinning the (hidden) sphere behind it.
-  if (overlays.artists?.classList.contains("is-open")) {
-    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
-      event.preventDefault();
-      stepArtist(event.key === "ArrowRight" ? 1 : -1);
-    }
-    return;
-  }
-
-  // Any other overlay (about/contact) open: don't fight its own controls.
-  if (overlays.about?.classList.contains("is-open") || overlays.contact?.classList.contains("is-open")) return;
+  // Nothing to do with the sphere unless it (or something inside it, like a
+  // focused cover-node) is the actual focus target.
+  if (document.activeElement !== scene && !scene.contains(document.activeElement)) return;
 
   const step = 6;
   if (event.key === "ArrowLeft") {
@@ -469,9 +465,9 @@ document.addEventListener("keydown", (event) => {
     rotateStep(step, 0);
   } else if (event.key === "Enter") {
     // A focused cover-node/button handles its own Enter via the native
-    // click it fires; only open the active piece when nothing else (or the
-    // scene itself) has focus.
-    if (event.target === scene || event.target === document.body) openDetail(activeIndex);
+    // click it fires; only open the active piece when the scene itself has
+    // focus.
+    if (event.target === scene) openDetail(activeIndex);
     return;
   } else {
     return;
@@ -488,17 +484,20 @@ nodes.forEach((node, index) => {
 });
 
 // ---------- overlays ----------
+// About/Artists/Contact are inline page sections now — only the cover
+// detail lightbox still needs the open/close overlay treatment.
 
 const overlays = {
   detail: document.querySelector("#detailOverlay"),
-  about: document.querySelector("#aboutOverlay"),
-  artists: document.querySelector("#artistsOverlay"),
-  contact: document.querySelector("#contactOverlay"),
 };
 
-// ---------- flickering grid (contact overlay background) ----------
-// Vanilla-JS take on magicui's FlickeringGrid, scoped to #workGrid so it
-// only ever runs while the contact overlay is open.
+const contactSection = document.querySelector("#contact");
+
+// ---------- flickering grid (contact footer background) ----------
+// Vanilla-JS take on magicui's FlickeringGrid, scoped to #workGrid. Runs
+// only while the footer is actually scrolled into view (see the
+// IntersectionObserver wiring below), not tied to an overlay open/close
+// anymore.
 
 const workGrid = (() => {
   const canvas = document.querySelector("#workGrid");
@@ -519,7 +518,8 @@ const workGrid = (() => {
   let lastTime = 0;
 
   const resize = () => {
-    const rect = overlays.contact.getBoundingClientRect();
+    if (!contactSection) return;
+    const rect = contactSection.getBoundingClientRect();
     dpr = window.devicePixelRatio || 1;
     canvas.width = Math.max(1, Math.round(rect.width * dpr));
     canvas.height = Math.max(1, Math.round(rect.height * dpr));
@@ -616,10 +616,6 @@ function openOverlay(name, triggerNode) {
   overlay.classList.add("is-open");
   overlay.setAttribute("aria-hidden", "false");
   overlay.querySelector(".overlay-close")?.focus();
-  if (name === "contact") {
-    workGrid?.start();
-    letterMagnet?.start();
-  }
 }
 
 function closeOverlay(name) {
@@ -628,10 +624,25 @@ function closeOverlay(name) {
   overlay.classList.remove("is-open");
   overlay.setAttribute("aria-hidden", "true");
   lastFocusedNode?.focus();
-  if (name === "contact") {
-    workGrid?.stop();
-    letterMagnet?.stop();
-  }
+}
+
+// The footer's flickering grid + letter-magnify effect used to start/stop
+// with the contact overlay opening and closing; now they run whenever the
+// footer is actually scrolled into view.
+if (contactSection) {
+  const contactVisibilityObserver = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        workGrid?.start();
+        letterMagnet?.start();
+      } else {
+        workGrid?.stop();
+        letterMagnet?.stop();
+      }
+    },
+    { threshold: 0.01 }
+  );
+  contactVisibilityObserver.observe(contactSection);
 }
 
 let currentDetailIndex = -1;
@@ -676,10 +687,6 @@ document.querySelector("#detailNext")?.addEventListener("click", () => {
   openDetail((currentDetailIndex + 1) % catalogue.length);
 });
 
-document.querySelectorAll("[data-open]").forEach((button) => {
-  button.addEventListener("click", () => openOverlay(button.dataset.open, button));
-});
-
 document.querySelectorAll("[data-close]").forEach((button) => {
   button.addEventListener("click", () => closeOverlay(button.dataset.close));
 });
@@ -691,139 +698,37 @@ document.addEventListener("keydown", (event) => {
   });
 });
 
-// ---------- artists carousel ----------
+// The artist coverflow (data read from #artistsData) now lives entirely in
+// carousel.js.
+
+// ---------- nav ----------
 //
-// A coverflow-style strip: the active artist sits centered and sharp, the
-// rest recede to either side, scaled down and dimmed. Arrow buttons, the
-// keyboard (wired in above), and clicking a side card all move the same
-// index; position/opacity/scale are recomputed from that one number.
+// Sticky nav's links are plain #hash anchors — the browser does the
+// scrolling. The only JS job left is marking which section is current as
+// the page scrolls past it.
 
-const artistsDataEl = document.querySelector("#artistsData");
-const artists = artistsDataEl ? JSON.parse(artistsDataEl.textContent) : [];
-const artistTrack = document.querySelector("#artistTrack");
-const artistIndexEl = document.querySelector("#artistIndex");
-const artistNameEl = document.querySelector("#artistName");
-const artistRoleEl = document.querySelector("#artistRole");
-const artistNoteEl = document.querySelector("#artistNote");
+const navLinks = [...document.querySelectorAll(".site-nav a[href^='#']")];
+const navSections = navLinks
+  .map((link) => document.querySelector(link.getAttribute("href")))
+  .filter(Boolean);
 
-let artistIndex = 0;
-
-const artistCards = artists.map((artist, index) => {
-  const card = document.createElement("button");
-  card.type = "button";
-  card.className = "artist-card";
-  card.dataset.index = String(index);
-  card.setAttribute("role", "option");
-  card.setAttribute("aria-label", artist.name);
-
-  const img = document.createElement("img");
-  img.src = artist.img;
-  img.alt = "";
-  img.draggable = false;
-  card.appendChild(img);
-
-  card.addEventListener("click", () => setArtistIndex(index));
-  artistTrack?.appendChild(card);
-  return card;
-});
-
-function layoutArtistCards() {
-  const mobile = window.innerWidth <= 600;
-  const spacing = mobile ? 108 : 158;
-  const rotateStep = 38; // deg per position, so side cards visibly face the centered one
-  const depthStep = mobile ? 90 : 130; // px pushed back into the screen per position
-
-  artistCards.forEach((card, index) => {
-    let offset = index - artistIndex;
-    // Wrap around so the strip loops both directions instead of dead-ending.
-    if (offset > artists.length / 2) offset -= artists.length;
-    if (offset < -artists.length / 2) offset += artists.length;
-
-    const abs = Math.abs(offset);
-    const visible = abs <= 3;
-
-    card.classList.toggle("is-active", offset === 0);
-    card.style.zIndex = String(100 - abs);
-    card.style.pointerEvents = visible ? "auto" : "none";
-    card.style.opacity = visible ? String(1 - abs * 0.3) : "0";
-
-    const scale = Math.max(1 - abs * 0.14, 0.42);
-    const x = offset * spacing;
-    const z = -abs * depthStep;
-    // Rotate opposite the offset direction so left cards turn right and
-    // right cards turn left — every card angles in toward the center one.
-    const rotateY = Math.max(-56, Math.min(56, -offset * rotateStep));
-    card.style.transform = `translate3d(calc(-50% + ${x}px), -50%, ${z}px) rotateY(${rotateY}deg) scale(${scale})`;
-  });
-}
-
-function setArtistIndex(index) {
-  artistIndex = ((index % artists.length) + artists.length) % artists.length;
-  layoutArtistCards();
-
-  const artist = artists[artistIndex];
-  if (!artist) return;
-  if (artistIndexEl) artistIndexEl.textContent = `${String(artistIndex + 1).padStart(2, "0")} / ${String(artists.length).padStart(2, "0")}`;
-  if (artistNameEl) artistNameEl.textContent = artist.name;
-  if (artistRoleEl) artistRoleEl.textContent = artist.role;
-  if (artistNoteEl) artistNoteEl.textContent = artist.note;
-}
-
-function stepArtist(delta) {
-  setArtistIndex(artistIndex + delta);
-}
-
-if (artists.length) {
-  setArtistIndex(0);
-  window.addEventListener("resize", layoutArtistCards);
-}
-
-document.querySelector("#artistArrowLeft")?.addEventListener("click", () => stepArtist(-1));
-document.querySelector("#artistArrowRight")?.addEventListener("click", () => stepArtist(1));
-
-// ---------- dock ----------
-//
-// "Cover art" closes whatever overlay is open and returns focus to the
-// gallery — every piece in the catalogue is already cover art, so there is
-// nothing to filter, only somewhere to come back to. Artists/Contact open
-// their overlays through the generic [data-open] wiring above.
-
-document.querySelector("#dockCover")?.addEventListener("click", () => {
-  Object.keys(overlays).forEach((name) => closeOverlay(name));
-  scene.focus();
-});
-
-// Magnify the hovered dock icon and taper the effect into its neighbours,
-// mirroring a macOS-style dock. Distance is measured along the dock's own
-// axis (vertical on desktop, horizontal on the mobile layout) so the effect
-// still reads correctly after the responsive flip.
-const dock = document.querySelector("#dock");
-const dockItems = document.querySelectorAll(".dock-item");
-const DOCK_SIZE = 40;
-const DOCK_MAGNIFY = 60;
-const DOCK_DISTANCE = 110;
-
-if (dock && dockItems.length && !reduceMotion) {
-  const isRowLayout = () => getComputedStyle(dock).flexDirection === "row";
-
-  const applyMagnify = (pointerCoord) => {
-    const rowLayout = isRowLayout();
-    dockItems.forEach((item) => {
-      const rect = item.getBoundingClientRect();
-      const center = rowLayout ? rect.left + rect.width / 2 : rect.top + rect.height / 2;
-      const dist = pointerCoord === null ? Infinity : Math.abs(pointerCoord - center);
-      const t = Math.max(0, 1 - dist / DOCK_DISTANCE);
-      const size = DOCK_SIZE + (DOCK_MAGNIFY - DOCK_SIZE) * t;
-      item.style.width = `${size}px`;
-      item.style.height = `${size}px`;
+if (navLinks.length && navSections.length) {
+  const setActiveNavLink = (id) => {
+    navLinks.forEach((link) => {
+      link.classList.toggle("is-active", link.getAttribute("href") === `#${id}`);
     });
   };
 
-  dock.addEventListener("pointermove", (event) => {
-    applyMagnify(isRowLayout() ? event.clientX : event.clientY);
-  });
-
-  dock.addEventListener("pointerleave", () => applyMagnify(null));
+  const navObserver = new IntersectionObserver(
+    (entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (visible) setActiveNavLink(visible.target.id);
+    },
+    { rootMargin: "-40% 0px -50% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] }
+  );
+  navSections.forEach((section) => navObserver.observe(section));
 }
 
 render();
