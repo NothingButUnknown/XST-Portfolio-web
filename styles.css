@@ -130,6 +130,8 @@ a {
 }
 
 .cover-node img {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -179,6 +181,7 @@ a {
 .cover-node.is-active::after {
   content: "";
   position: absolute;
+  z-index: 0;
   inset: 0;
   border-radius: var(--tile-radius);
   pointer-events: none;
@@ -617,7 +620,7 @@ a {
 }
 
 .work-title span {
-  color: var(--chrome-dim);
+  color: var(--xst-red);
 }
 
 .work-cta {

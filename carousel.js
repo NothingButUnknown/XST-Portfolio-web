@@ -89,6 +89,7 @@
   let sectionVisible = true;
   let rafId = null;
   let lastTime = 0;
+  let tickerStep = null; // set once the labels ticker below has data to drive
 
   // ---------- layout tuning per breakpoint (flat row: translate only) ----------
   function layoutConfig() {
@@ -176,9 +177,23 @@
     restartIdleTimer();
   }
 
-  stage.addEventListener("pointerenter", onInteractStart);
-  stage.addEventListener("pointerleave", onInteractEnd);
-  stage.addEventListener("pointerdown", onInteractStart);
+  // Mouse-hover pause binds to the track itself, not the full-width stage —
+  // .artist-stage spans 100% of the section (including the empty flanks
+  // beyond the visible cards), so binding pointerenter there froze the drift
+  // whenever the cursor merely rested near the row. Keyboard focus still
+  // binds to the whole stage (arrows included) so tabbing to an arrow still
+  // pauses drift for a sighted keyboard user.
+  artistTrack.addEventListener("pointerenter", onInteractStart);
+  artistTrack.addEventListener("pointerleave", onInteractEnd);
+  artistTrack.addEventListener("pointerdown", onInteractStart);
+  // Touch has no hover, so pointerenter/pointerleave largely don't fire —
+  // a tap only gives pointerdown. Without a matching release listener,
+  // tapping the track (anywhere that isn't a card, e.g. between cards, or
+  // the start of a scroll drag) drops targetSpeed to 0 and nothing ever
+  // calls onInteractEnd again: permanently frozen. pointerup/pointercancel
+  // on window catch the release even if the finger drags off the track.
+  window.addEventListener("pointerup", onInteractEnd);
+  window.addEventListener("pointercancel", onInteractEnd);
   stage.addEventListener("focusin", onInteractStart);
   stage.addEventListener("focusout", (event) => {
     if (!stage.contains(event.relatedTarget)) onInteractEnd();
@@ -218,6 +233,7 @@
     }
 
     layout();
+    if (tickerStep) tickerStep(dt);
 
     rafId = sectionVisible ? requestAnimationFrame(frame) : null;
   }
@@ -225,6 +241,17 @@
   window.addEventListener("resize", layout);
 
   layout();
+
+  // Start the loop unconditionally on load — don't wait for the observer's
+  // first callback. IntersectionObserver callbacks are async and, on some
+  // desktop layouts (zoom level, late web-font reflow, initial scroll
+  // position), the first report can come back isIntersecting:false even
+  // though the section is about to be on-screen. Relying on it alone as the
+  // *only* way to ever start the loop meant a bad first read froze the whole
+  // row and ticker permanently, with nothing to retry it. The observer still
+  // pauses/resumes the loop after this for scroll performance — it's just
+  // no longer the sole trigger.
+  rafId = requestAnimationFrame(frame);
 
   const visibilityObserver = new IntersectionObserver(
     ([entry]) => {
@@ -238,17 +265,23 @@
   );
   visibilityObserver.observe(section);
 
-  // ---------- labels ticker: decorative CSS-only marquee ----------
+  // ---------- labels ticker: constant drift, decelerates on hover ----------
   //
-  // Not interactive (no click targets, no pause-on-hover) — a constant
-  // undisturbed ribbon, per the reference. Content is duplicated once so a
-  // `translateX(-50%)` CSS animation loops seamlessly; the animation itself
-  // (speed, direction, easing) lives entirely in carousel.css. The only JS
-  // job here is populating the list and pausing it in sync with the same
-  // #artists IntersectionObserver used above (no separate rAF needed).
+  // Same rig as the artist row above: a continuous px position eased toward
+  // a target speed (exponential smoothing, never a hard cut), so hovering
+  // the ticker glides it down to a stop instead of snapping. Runs inside the
+  // shared frame() loop / #artists visibility gate above — no separate rAF.
   const labelsDataEl = document.querySelector("#labelsData");
   const labels = labelsDataEl ? JSON.parse(labelsDataEl.textContent) : [];
   const labelsTrack = document.querySelector("#labelsTrack");
+  const tickerMask = document.querySelector(".ticker-mask");
+
+  const TICKER_SPEED = 42; // px/second, ambient idle drift (leftward)
+
+  let tickerPos = 0; // px, continuous
+  let tickerSpeed = 0;
+  let tickerTargetSpeed = reduceMotion ? 0 : TICKER_SPEED;
+  let tickerHalfWidth = 0;
 
   if (labels.length && labelsTrack) {
     const renderSet = () => {
@@ -262,16 +295,28 @@
       return frag;
     };
 
-    // Twice back-to-back so translateX(-50%) is a seamless loop point.
+    // Twice back-to-back so wrapping at the halfway point is a seamless loop.
     labelsTrack.appendChild(renderSet());
     labelsTrack.appendChild(renderSet());
 
-    const tickerObserver = new IntersectionObserver(
-      ([entry]) => {
-        labelsTrack.classList.toggle("is-paused", !entry.isIntersecting);
-      },
-      { threshold: 0.01 }
-    );
-    tickerObserver.observe(section);
+    const measureTicker = () => {
+      tickerHalfWidth = labelsTrack.scrollWidth / 2;
+    };
+    measureTicker();
+    window.addEventListener("resize", measureTicker);
+
+    tickerMask?.addEventListener("pointerenter", () => {
+      tickerTargetSpeed = 0;
+    });
+    tickerMask?.addEventListener("pointerleave", () => {
+      tickerTargetSpeed = reduceMotion ? 0 : TICKER_SPEED;
+    });
+
+    tickerStep = (dt) => {
+      tickerSpeed += (tickerTargetSpeed - tickerSpeed) * (1 - Math.exp(-SPEED_EASE_K * dt));
+      tickerPos += tickerSpeed * dt;
+      if (tickerHalfWidth > 0 && tickerPos >= tickerHalfWidth) tickerPos -= tickerHalfWidth;
+      labelsTrack.style.transform = `translateX(${-tickerPos}px)`;
+    };
   }
 })();

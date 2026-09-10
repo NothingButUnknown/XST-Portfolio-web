@@ -370,7 +370,6 @@ scene.addEventListener("pointerdown", (event) => {
   startRotationY = targetRotationY;
   velocityX = 0;
   velocityY = 0;
-  idleSpin = 0;
   scene.classList.add("is-dragging");
   scene.setPointerCapture(event.pointerId);
 });
@@ -418,7 +417,6 @@ scene.addEventListener("lostpointercapture", finishDrag);
 // Shared by the keyboard arrows and the on-screen arrow buttons, so a tap
 // on a button eases the same way a keypress does.
 const rotateStep = (deltaX, deltaY) => {
-  idleSpin = 0;
   velocityX = 0;
   velocityY = 0;
   targetRotationX += deltaX;

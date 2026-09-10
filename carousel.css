@@ -50,11 +50,10 @@
   display: flex;
   align-items: center;
   width: max-content;
-  animation: ticker-scroll 32s linear infinite;
-}
-
-.ticker-track.is-paused {
-  animation-play-state: paused;
+  /* Position is written every animation frame from JS (same drift/decelerate
+     rig as the artist row below) — no CSS animation here, so a JS transform
+     write never fights a running keyframe. */
+  will-change: transform;
 }
 
 .ticker-item {
@@ -69,23 +68,6 @@
   -webkit-text-stroke: 1px var(--hairline-strong);
   white-space: nowrap;
   user-select: none;
-}
-
-@keyframes ticker-scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    /* Content is rendered twice back-to-back in the DOM (carousel.js), so
-       -50% is exactly one full set — the loop point is seamless. */
-    transform: translateX(-50%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ticker-track {
-    animation: none;
-  }
 }
 
 /* ---------- artist stage: flat row, no bordered panel ---------- */

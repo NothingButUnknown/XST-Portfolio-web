@@ -222,6 +222,8 @@
   overflow: hidden;
   min-height: min(100vh, 760px);
   display: flex;
+  justify-content: center;
+  align-items: center;
   border-top: 1px solid var(--hairline);
 }
 
