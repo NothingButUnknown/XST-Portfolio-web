@@ -95,6 +95,7 @@ const sampleCoverGlow = (img, index, node) => {
 
 const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 const points = [];
+const lastZIndex = [];
 
 const nodes = catalogue.map((item, index) => {
   const button = document.createElement("button");
@@ -265,7 +266,16 @@ const render = () => {
 
     node.style.transform = `translate3d(calc(-50% + ${x}px), calc(-50% + ${y}px), 0) scale(${scale}) rotate(${roll}deg)`;
     node.style.opacity = String(Math.max(0.05, Math.min(1, opacity)));
-    node.style.zIndex = String(Math.round((point.z + 1) * 500));
+
+    // z-index is NOT a compositor-only property — writing it every frame
+    // forces the browser to re-resolve paint/stacking order for all 25
+    // siblings, on every single frame, even when the front-to-back order
+    // hasn't actually changed. Skip the write unless the rounded value moved.
+    const zIndexValue = Math.round((point.z + 1) * 500);
+    if (lastZIndex[index] !== zIndexValue) {
+      lastZIndex[index] = zIndexValue;
+      node.style.zIndex = String(zIndexValue);
+    }
 
     projectedPoints.push({
       x: cachedSceneOffsetLeft + x,
