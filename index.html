@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XST — graphic design</title>
+    <meta
+      name="description"
+      content="XST. Cover art, banners, logos, and posters. Drag the sphere, browse the portfolio, commission your own."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght,wdth@0,400,100;0,500,100;0,600,112.5;0,900,125&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="dot-pattern" aria-hidden="true"></div>
+
+    <div class="scene" id="scene" aria-label="Rotating gallery of XST cover art. Drag to rotate, use arrow keys, tap a piece to view it." tabindex="0">
+      <canvas class="scene-web" id="sceneWeb" aria-hidden="true"></canvas>
+      <div class="scene-inner" id="sceneInner"></div>
+    </div>
+
+    <div class="cursor-dot" id="cursorDot" aria-hidden="true">
+      <span class="cursor-label">Drag</span>
+    </div>
+
+    <header class="top-bar">
+      <span class="wordmark">XST</span>
+      <span class="index-readout" id="indexReadout" aria-live="polite">— / 025</span>
+    </header>
+
+    <nav class="dock" id="dock" aria-label="Primary navigation">
+      <button type="button" class="dock-item is-active" id="dockCover" aria-label="Cover art">
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="2"></rect><path d="M3.5 15.5 9 10l3.5 3.5L16 10l4.5 5.5"></path><circle cx="8.5" cy="8" r="1.4"></circle></svg>
+        <span class="dock-label">Cover art</span>
+      </button>
+      <button type="button" class="dock-item" data-open="artists" aria-label="Artists">
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><circle cx="12" cy="8" r="3.4"></circle><path d="M5 20c0-3.6 3.1-6.2 7-6.2s7 2.6 7 6.2"></path></svg>
+        <span class="dock-label">Artists</span>
+      </button>
+      <button type="button" class="dock-item" data-open="contact" aria-label="Contact">
+        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"></path></svg>
+        <span class="dock-label">Contact</span>
+      </button>
+    </nav>
+
+    <footer class="bottom-bar">
+      <button type="button" class="bar-link" data-open="about">About</button>
+      <span class="bar-brand">XST Graphic</span>
+    </footer>
+
+    <!-- Detail overlay -->
+    <section class="overlay detail-overlay" id="detailOverlay" aria-hidden="true" aria-labelledby="detailTitle">
+      <button type="button" class="overlay-close" data-close="detail">Close</button>
+      <div class="detail-body">
+        <div class="detail-art">
+          <img id="detailImg" src="" alt="" />
+        </div>
+        <div class="detail-info">
+          <p class="detail-eyebrow" id="detailEyebrow">XST-000 · COVER</p>
+          <h2 class="detail-title" id="detailTitle">Untitled</h2>
+          <p class="detail-note" id="detailNote"></p>
+          <p class="detail-specs" id="detailSpecs"></p>
+          <a class="button-primary" id="detailCta" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer">
+            Commission a cover like this
+          </a>
+          <div class="detail-nav">
+            <button type="button" class="detail-nav-btn" id="detailPrev" aria-label="Previous piece">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M15 5 8 12l7 7"></path></svg>
+            </button>
+            <button type="button" class="detail-nav-btn" id="detailNext" aria-label="Next piece">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="filmstrip" id="filmstrip" role="listbox" aria-label="All pieces"></div>
+    </section>
+
+    <!-- About overlay -->
+    <section class="overlay panel-overlay" id="aboutOverlay" aria-hidden="true" aria-labelledby="aboutTitle">
+      <button type="button" class="overlay-close" data-close="about">Close</button>
+      <div class="panel-body">
+        <p class="panel-eyebrow">About</p>
+        <h2 class="panel-title" id="aboutTitle">XST turns visual aggression into identity.</h2>
+        <p>
+          Cover art, social branding, and digital drops built between tech pressure, underground
+          music artwork, and premium finish. Blood red, chrome, and black negative space, worked
+          until the piece looks like it costs more than it did.
+        </p>
+        <p>
+          Every piece in the sphere is a real delivered file. Drag it, spin it, open one, and
+          commission the same style for your own drop.
+        </p>
+      </div>
+    </section>
+
+    <!-- Artists overlay -->
+    <section class="overlay panel-overlay artists-overlay" id="artistsOverlay" aria-hidden="true" aria-labelledby="artistsTitle">
+      <button type="button" class="overlay-close" data-close="artists">Close</button>
+      <div class="artists-body">
+        <p class="panel-eyebrow">Selected collaborations</p>
+        <h2 class="panel-title" id="artistsTitle">Artists on the roster.</h2>
+
+        <div class="artist-stage">
+          <div class="artist-carousel">
+            <button type="button" class="artist-arrow artist-arrow--left" id="artistArrowLeft" aria-label="Previous artist">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M15 5 8 12l7 7"></path></svg>
+            </button>
+            <div class="artist-track" id="artistTrack" role="listbox" aria-label="Artists XST has worked with"></div>
+            <button type="button" class="artist-arrow artist-arrow--right" id="artistArrowRight" aria-label="Next artist">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+
+          <div class="artist-info">
+            <div class="artist-meta">
+              <span class="artist-index" id="artistIndex">— / 00</span>
+              <span class="artist-role" id="artistRole"></span>
+            </div>
+            <h3 class="artist-name" id="artistName"></h3>
+            <p class="artist-note" id="artistNote"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact overlay -->
+    <section class="overlay panel-overlay work-overlay" id="contactOverlay" aria-hidden="true" aria-labelledby="contactTitle">
+      <canvas class="work-grid" id="workGrid" aria-hidden="true"></canvas>
+      <button type="button" class="overlay-close" data-close="contact">Close</button>
+      <div class="work-body">
+        <img class="work-logo" src="assets/xst-wordmark.png" alt="XST" />
+        <p class="work-eyebrow"><span></span>Open for selected drops</p>
+        <h2 class="work-title" id="contactTitle">Let's work<br /><span>together.</span></h2>
+        <a class="work-cta" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer" aria-label="Message XST on Instagram">
+          <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+            <path d="M7 17 17 7M9 7h8v8"></path>
+          </svg>
+        </a>
+        <p class="work-copy">
+          Send the brief, the references, and the timeline. Fastest way to a reply is a DM.
+        </p>
+        <a class="work-handle" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer">
+          @xst.graphic
+        </a>
+      </div>
+    </section>
+
+    <script type="application/json" id="catalogue">
+      [
+        { "id": "XST-001", "file": "cover-01-fiesta-loca.jpg", "kind": "cover", "title": "Fiesta Loca", "note": "", "price": 30 },
+        { "id": "XST-002", "file": "cover-02-run-funk.jpg", "kind": "cover", "title": "Run Funk", "note": "", "price": 30 },
+        { "id": "XST-003", "file": "cover-03-montagem-palhaco.jpg", "kind": "cover", "title": "Montagem Palhaço", "note": "", "price": 30 },
+        { "id": "XST-004", "file": "cover-04-montagem-bota.jpg", "kind": "cover", "title": "Montagem Bota", "note": "", "price": 30 },
+        { "id": "XST-005", "file": "cover-05.jpg", "kind": "cover", "title": "", "note": "", "price": 30 },
+        { "id": "XST-006", "file": "cover-06-montagem-gira-devagar.jpg", "kind": "cover", "title": "Montagem Gira Devagar", "note": "", "price": 30 },
+        { "id": "XST-007", "file": "cover-07.jpg", "kind": "cover", "title": "", "note": "", "price": 30 },
+        { "id": "XST-008", "file": "cover-08-montagem-bam-bam.jpg", "kind": "cover", "title": "Montagem Bam Bam", "note": "", "price": 30 },
+        { "id": "XST-009", "file": "cover-09-run-funk.jpg", "kind": "cover", "title": "Run Funk", "note": "", "price": 30 },
+        { "id": "XST-010", "file": "cover-10.jpg", "kind": "cover", "title": "", "note": "", "price": 30 },
+        { "id": "XST-011", "file": "cover-11-la-vida-batidao.jpg", "kind": "cover", "title": "La Vida Batidão", "note": "", "price": 30 },
+        { "id": "XST-012", "file": "cover-12-montagem-ximetrica.jpg", "kind": "cover", "title": "Montagem Ximetrica", "note": "", "price": 30 },
+        { "id": "XST-013", "file": "cover-13-montagem-dela.jpg", "kind": "cover", "title": "Montagem Dela", "note": "", "price": 30 },
+        { "id": "XST-014", "file": "cover-14.jpg", "kind": "cover", "title": "", "note": "", "price": 30 },
+        { "id": "XST-015", "file": "cover-15-brisa-da-noite.jpg", "kind": "cover", "title": "Brisa Da Noite", "note": "", "price": 30 },
+        { "id": "XST-016", "file": "cover-16-montagem-no-vento.jpg", "kind": "cover", "title": "Montagem No Vento", "note": "", "price": 30 },
+        { "id": "XST-017", "file": "cover-17.jpg", "kind": "cover", "title": "", "note": "", "price": 30 },
+        { "id": "XST-018", "file": "cover-18.jpg", "kind": "cover", "title": "", "note": "", "price": 30 },
+        { "id": "XST-019", "file": "cover-19.jpg", "kind": "cover", "title": "", "note": "", "price": 30 },
+        { "id": "XST-020", "file": "cover-20.jpg", "kind": "cover", "title": "", "note": "", "price": 30 },
+        { "id": "XST-021", "file": "cover-21.jpg", "kind": "cover", "title": "", "note": "", "price": 30 },
+        { "id": "XST-022", "file": "cover-22-dumb-dumb-funk.jpg", "kind": "cover", "title": "Dumb Dumb Funk", "note": "", "price": 30 },
+        { "id": "XST-023", "file": "cover-23-na-chegada.jpg", "kind": "cover", "title": "Na Chegada", "note": "", "price": 30 },
+        { "id": "XST-024", "file": "cover-24.jpg", "kind": "cover", "title": "", "note": "", "price": 30 },
+        { "id": "XST-025", "file": "cover-25.jpg", "kind": "cover", "title": "", "note": "", "price": 30 }
+      ]
+    </script>
+
+    <!-- Placeholder roster — Calen sends the real names, photos, and credits later. -->
+    <script type="application/json" id="artistsData">
+      [
+        { "name": "MC Fenix", "role": "Recording artist · Funk carioca", "note": "3 cover drops, 2024–2025", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=MC+Fenix" },
+        { "name": "Bianca Rae", "role": "Vocalist · R&B", "note": "Single artwork + rollout banners", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Bianca+Rae" },
+        { "name": "DJ Vortex", "role": "Producer / DJ · Trap", "note": "EP cover + tour poster set", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=DJ+Vortex" },
+        { "name": "Kaio Blitz", "role": "Recording artist · Montagem", "note": "Ongoing cover series, 6 drops", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Kaio+Blitz" },
+        { "name": "Tropa do Chrome", "role": "Group · Funk", "note": "Full visual identity + logo", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Tropa" },
+        { "name": "Noa Prisma", "role": "Singer-songwriter · Pop", "note": "Album cover, 2025", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Noa+Prisma" },
+        { "name": "Rafa Ximétrica", "role": "Producer · Montagem", "note": "2 cover drops + Instagram banners", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Rafa+X" }
+      ]
+    </script>
+
+    <script src="scene.js"></script>
+  </body>
+</html>
