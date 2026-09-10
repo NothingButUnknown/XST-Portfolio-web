@@ -34,9 +34,9 @@ body {
 
 body {
   background:
-    radial-gradient(120% 90% at 50% 42%, rgba(224, 27, 27, 0.16), transparent 62%),
-    linear-gradient(180deg, rgba(6, 6, 6, 0.62) 0%, rgba(6, 6, 6, 0.86) 45%, var(--void) 88%),
-    url("assets/bg-chrome.jpg") center / cover no-repeat fixed;
+    radial-gradient(120% 90% at 50% 42%, rgba(224, 27, 27, 0.32), transparent 62%),
+    radial-gradient(140% 110% at 50% 108%, rgba(140, 10, 10, 0.4), transparent 70%),
+    var(--void);
 }
 
 button {

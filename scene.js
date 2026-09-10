@@ -104,9 +104,13 @@ const nodes = catalogue.map((item, index) => {
   button.setAttribute("aria-label", `Open ${item.title || "Untitled — " + item.id}`);
 
   const img = document.createElement("img");
-  img.src = `assets/covers/${item.file}`;
+  img.src = `assets/covers/thumb/${item.file}`;
   img.alt = "";
   img.draggable = false;
+  img.width = 480;
+  img.height = 480;
+  img.loading = index < 6 ? "eager" : "lazy";
+  img.decoding = "async";
   button.appendChild(img);
 
   sceneInner.appendChild(button);
@@ -194,10 +198,21 @@ const webContext = sceneWeb?.getContext("2d");
 let webWidth = 0;
 let webHeight = 0;
 
+// Geometry cache: sceneInner/scene only change size on window resize (or a
+// device-orientation change), never per animation frame. Reading
+// getBoundingClientRect() inside render() forces a synchronous layout 60x/sec
+// for no reason — Safari in particular pays a much bigger tax for that than
+// Chromium. Compute it once here and only refresh on resize.
+let cachedBoxWidth = 0;
+let cachedBoxHeight = 0;
+let cachedSceneOffsetLeft = 0;
+let cachedSceneOffsetTop = 0;
+
 const resizeSceneWeb = () => {
   if (!sceneWeb || !scene) return;
   const ratio = window.devicePixelRatio || 1;
   const rect = scene.getBoundingClientRect();
+  const innerRect = sceneInner.getBoundingClientRect();
   webWidth = rect.width;
   webHeight = rect.height;
   sceneWeb.width = Math.max(1, Math.round(rect.width * ratio));
@@ -205,6 +220,11 @@ const resizeSceneWeb = () => {
   sceneWeb.style.width = `${rect.width}px`;
   sceneWeb.style.height = `${rect.height}px`;
   if (webContext) webContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+  cachedBoxWidth = innerRect.width;
+  cachedBoxHeight = innerRect.height;
+  cachedSceneOffsetLeft = innerRect.left - rect.left + innerRect.width / 2;
+  cachedSceneOffsetTop = innerRect.top - rect.top + innerRect.height / 2;
 };
 
 resizeSceneWeb();
@@ -228,9 +248,7 @@ const render = () => {
   currentRotationY += (targetRotationY - currentRotationY) * 0.14;
   currentRotationZ += (targetRotationZ - currentRotationZ) * 0.14;
 
-  const box = sceneInner.getBoundingClientRect();
-  const sceneBox = scene?.getBoundingClientRect();
-  const radius = Math.min(box.width, box.height) * 0.5;
+  const radius = Math.min(cachedBoxWidth, cachedBoxHeight) * 0.5;
   const projectedPoints = [];
   let closestIndex = 0;
   let closestDepth = -Infinity;
@@ -249,14 +267,12 @@ const render = () => {
     node.style.opacity = String(Math.max(0.05, Math.min(1, opacity)));
     node.style.zIndex = String(Math.round((point.z + 1) * 500));
 
-    if (sceneBox) {
-      projectedPoints.push({
-        x: box.left - sceneBox.left + box.width / 2 + x,
-        y: box.top - sceneBox.top + box.height / 2 + y,
-        z: point.z,
-        active: index === activeIndex,
-      });
-    }
+    projectedPoints.push({
+      x: cachedSceneOffsetLeft + x,
+      y: cachedSceneOffsetTop + y,
+      z: point.z,
+      active: index === activeIndex,
+    });
 
     if (point.z > closestDepth) {
       closestDepth = point.z;
@@ -566,8 +582,10 @@ let lastFocusedNode = null;
 
 const thumbs = catalogue.map((item, index) => {
   const img = document.createElement("img");
-  img.src = `assets/covers/${item.file}`;
+  img.src = `assets/covers/thumb/${item.file}`;
   img.alt = "";
+  img.loading = "lazy";
+  img.decoding = "async";
   img.tabIndex = 0;
   img.setAttribute("role", "option");
   img.addEventListener("click", () => openDetail(index));
@@ -984,9 +1002,10 @@ if (wordmark && finePointer) {
 
     const particle = document.createElement("div");
     const img = document.createElement("img");
-    img.src = `assets/covers/${cover.file}`;
+    img.src = `assets/covers/thumb/${cover.file}`;
     img.alt = "";
     img.draggable = false;
+    img.decoding = "async";
     img.width = size;
     img.height = size;
     img.style.borderRadius = "4px";
