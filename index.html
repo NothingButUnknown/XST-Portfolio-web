@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght,wdth@0,400,100;0,500,100;0,600,112.5;0,900,125&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght,wdth@0,400,100;0,500,100;0,600,112.5;0,900,125&family=Bodoni+Moda:ital,opsz,wght@0,6..96,900;1,6..96,900&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -20,22 +20,14 @@
     <link rel="stylesheet" href="carousel.css" />
     <link rel="stylesheet" href="spotify-card.css" />
     <link rel="preload" as="image" href="assets/xst-mark-loader.png" />
+    <link rel="preload" as="image" href="assets/hero-art.webp" fetchpriority="high" />
     <script>
       (function () {
         var root = document.documentElement;
-        root.classList.add("is-loading");
-        // First tab load this session gets the full-screen depixelating
-        // mark; a refresh or an in-session return does not — sessionStorage
-        // is the only reliable "have they already seen it" signal without
-        // a server round-trip.
-        try {
-          if (!sessionStorage.getItem("xstBooted")) {
-            root.classList.add("is-first-load");
-          }
-        } catch (e) {
-          // Storage blocked (private mode, etc.) — skip the loader rather
-          // than risk it never being marked seen.
-        }
+        root.classList.add("is-loading", "is-first-load");
+        // The depixelating mark plays every load — first visit and every
+        // refresh — so it's always armed, not gated behind a "seen it
+        // already" flag.
       })();
     </script>
   </head>
@@ -45,6 +37,8 @@
     </div>
 
     <div class="page">
+    <div class="art-wash" aria-hidden="true"></div>
+    <div class="art-grain" aria-hidden="true"></div>
     <header class="site-nav" id="siteNav" data-intro="1">
       <div class="site-nav-inner">
         <a class="wordmark" href="#top"><img src="assets/xst-logo.png" alt="XST" /></a>
@@ -104,10 +98,8 @@
           if (done) return;
           done = true;
           draw(1);
-          try {
-            sessionStorage.setItem("xstBooted", "1");
-          } catch (e) {}
           loader.classList.add("is-done");
+          document.dispatchEvent(new CustomEvent("xst:loader-done"));
           setTimeout(function () {
             loader.remove();
           }, 520); // matches the CSS exit transition (opacity + zoom-out)
@@ -142,45 +134,61 @@
     </div>
 
     <main id="top">
+      <!-- Wraps the whole page body, footer included, so the mini-player
+           (mounted into #miniPlayerTrack by spotify-card.js) can sit
+           position:sticky inside it — it rides along the full scroll and
+           settles at the true bottom of the page over the footer, instead
+           of stopping at the footer's top edge. -->
+      <div class="mini-player-track" id="miniPlayerTrack">
       <!-- About / hero -->
       <section class="section hero" id="about" aria-label="About XST">
+        <div class="hero-art" aria-hidden="true"></div>
         <div class="container hero-inner">
-          <h1 class="hero-heading" data-intro="2">Cover art that stops the scroll.</h1>
-          <p class="hero-copy" data-intro="3">
+          <h1 class="hero-heading" data-split-lines data-accent="stops:accent-fade scroll.:accent-outline">Cover art that stops the scroll.</h1>
+          <p class="hero-copy" data-intro="2">
             Every good song needs cover art that grabs someone before they hit play. The art is the
             first thing they see, and it's what makes them curious enough to listen.
           </p>
         </div>
 
-        <!-- Impact panel: the receipts behind the claim above. Every number
-             here is derived from #catalogue's "streams" field at runtime
-             (see scene.js) — never hand-typed, so it can't go stale. The
-             figures themselves are still PLACEHOLDERS until Calen sends
-             real per-track stream counts (see the comment on #catalogue). -->
+        <!-- Impact panel: the receipts behind the claim above. Real numbers
+             from Calen, hand-typed here — no longer derived from
+             #catalogue at runtime (see scene.js note on impactTotal etc). -->
         <div class="container impact-inner">
-          <div class="impact-panel" data-intro="4">
+          <div class="impact-panel" data-intro="3">
             <div class="impact-lead">
-              <p class="section-eyebrow">Catalog impact</p>
-              <p class="impact-total" id="impactTotal">—</p>
+              <div class="impact-lead-head">
+                <p class="section-eyebrow">Catalog impact</p>
+                <span class="impact-live" aria-label="Live figure">
+                  <span class="impact-live-dot" aria-hidden="true"></span>Live
+                </span>
+              </div>
+              <p class="impact-total" id="impactTotal">600M<span>+</span></p>
               <p class="impact-caption">Streams across every track XST has shipped a cover for.</p>
             </div>
             <div class="impact-stats">
               <div class="impact-stat">
-                <span class="impact-stat-value" id="impactCovers">—</span>
+                <span class="impact-stat-value" id="impactCovers">600<span>+</span></span>
                 <span class="impact-stat-label">Covers shipped</span>
               </div>
               <div class="impact-stat">
-                <span class="impact-stat-value" id="impactBest">—</span>
-                <span class="impact-stat-label" id="impactBestLabel">Best-performing cover</span>
+                <span class="impact-stat-value" id="impactBest">From The Start</span>
+                <span class="impact-stat-label" id="impactBestLabel">Best-performing cover · Funk : -Prey, ZMAJOR, zxnc, Emrld!</span>
               </div>
               <div class="impact-stat">
-                <span class="impact-stat-value" id="impactAvg">—</span>
+                <span class="impact-stat-value" id="impactAvg">2M</span>
                 <span class="impact-stat-label">Average per cover</span>
               </div>
             </div>
           </div>
-          <div class="impact-signature" data-intro="5">
+          <div class="impact-signature" data-intro="4">
+            <!-- Reserved space around the wordmark for Calen's own mark
+                 (the hand-drawn red scribble accents around "XST" in the
+                 reference) — no asset for that yet, so this stays open
+                 space until he sends one. -->
+            <div class="signature-mark-slot" aria-hidden="true"></div>
             <img class="impact-logo" src="assets/xst-logo.png" alt="XST" />
+            <div class="signature-mark-slot" aria-hidden="true"></div>
             <a class="button-primary impact-ig" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer">
               See the receipts on Instagram
             </a>
@@ -205,7 +213,7 @@
       <section class="section artists" id="artists" aria-label="Artists on the roster">
         <div class="container artists-head">
           <p class="panel-eyebrow">Selected collaborations</p>
-          <h2 class="panel-title">Artists on the roster.</h2>
+          <h2 class="panel-title">Artists on the <span class="accent-outline">roster.</span></h2>
         </div>
 
         <div class="labels-ticker" aria-label="Labels XST has worked with">
@@ -234,7 +242,7 @@
         <div class="work-body">
           <img class="work-logo" src="assets/xst-logo.png" alt="XST" />
           <p class="work-eyebrow"><span></span>Open for selected drops</p>
-          <h2 class="work-title">Let's work<br /><span>together.</span></h2>
+          <h2 class="work-title">Let's <span class="accent-dim">work</span><br /><span class="accent-italic is-brand">together.</span></h2>
           <a class="work-cta" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer" aria-label="Message XST on Instagram">
             <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
               <path d="M7 17 17 7M9 7h8v8"></path>
@@ -248,6 +256,7 @@
           </a>
         </div>
       </footer>
+      </div><!-- /.mini-player-track -->
     </main>
 
     <!-- Detail overlay (cover lightbox — stays an overlay so opening a cover never moves you off the page) -->
@@ -286,8 +295,15 @@
          UI drives it entirely; visitors never see Spotify's own player
          chrome, only ours. Tracks without a resolved spotifyId in the
          catalogue have nothing to load here, so the card falls back to
-         "open in Spotify" for those. -->
-    <div id="spotifyEmbedHost" class="spotify-embed-host" aria-hidden="true"></div>
+         "open in Spotify" for those.
+
+         The Spotify IFrame API REPLACES #spotifyEmbedHost with its own
+         <iframe>, dropping the class/id on it — so the off-canvas hiding
+         styles live on this wrapper instead, and #spotifyEmbedHost is a
+         sacrificial mount point. -->
+    <div class="spotify-embed-host" aria-hidden="true">
+      <div id="spotifyEmbedHost"></div>
+    </div>
     </div><!-- /.page -->
     <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 
@@ -351,20 +367,47 @@
       ]
     </script>
 
+    <script src="lines.js"></script>
     <script>
       (function () {
         var root = document.documentElement;
         var done = false;
+        var fontsReady = false;
+        var loaderDone = false;
+
         function reveal() {
           if (done) return;
           done = true;
+          if (window.xstSplitLines) window.xstSplitLines(".hero-heading");
           root.classList.remove("is-loading");
           root.classList.add("is-ready");
         }
+
+        // Wait for both signals — fonts settled AND the depixelating mark
+        // has finished its exit — so the hero lines never arm underneath
+        // the loader and get missed. A hard failsafe below still fires if
+        // either signal never comes (e.g. the image asset 404s upstream of
+        // the loader's own 3200ms cap somehow not covering it).
+        function maybeReveal() {
+          if (fontsReady && loaderDone) requestAnimationFrame(reveal);
+        }
+
+        document.addEventListener("xst:loader-done", function () {
+          loaderDone = true;
+          maybeReveal();
+        });
+
         var fonts = document.fonts && document.fonts.ready;
-        if (fonts) fonts.then(function () { requestAnimationFrame(reveal); });
-        else requestAnimationFrame(reveal);
-        setTimeout(reveal, 1200);
+        if (fonts) {
+          fonts.then(function () {
+            fontsReady = true;
+            maybeReveal();
+          });
+        } else {
+          fontsReady = true;
+        }
+
+        setTimeout(reveal, 4000); // failsafe: never strand the page hidden
       })();
     </script>
     <script src="spotify-card.js"></script>

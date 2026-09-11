@@ -17,6 +17,13 @@
   padding: 0 clamp(1.25rem, 5vw, 3rem);
 }
 
+/* Stacked above .art-wash / .art-grain (position:fixed, z-index:0 — see
+   styles.css) so every section reads on top of the ambient art. */
+.page {
+  position: relative;
+  z-index: 1;
+}
+
 /* ---------- sticky nav ---------- */
 
 .site-nav {
@@ -138,17 +145,50 @@
 .hero.section {
   position: relative;
   padding-top: clamp(6rem, 12vh, 9rem);
-  padding-bottom: clamp(3rem, 6vh, 4.5rem);
+  /* Extra room below the copy so .hero-art's mask (see below) has space to
+     reach fully transparent before the Work section starts — that's what
+     kills the hard edge between "art" and "plain black page" that used to
+     sit right under the impact panel. */
+  padding-bottom: clamp(6rem, 11vh, 8rem);
   overflow: hidden;
 }
 
-.hero.section::before {
-  content: "";
+/* Real brand art (brand assets/image copy 3.png, mirrored so its saturated
+   mass sits right of this left-aligned copy — see assets/hero-art.webp)
+   at full strength, masked out to nothing by the section's bottom edge so
+   it dissolves into the ambient .art-wash below rather than cutting off. */
+.hero-art {
   position: absolute;
   inset: 0;
   z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(60% 55% at 15% 20%, rgba(224, 27, 27, 0.14), transparent 70%);
+  background: url("assets/hero-art.webp") 50% 45% / cover no-repeat;
+  mask-image: linear-gradient(180deg, #000 0%, #000 58%, rgba(0, 0, 0, 0.5) 80%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, rgba(0, 0, 0, 0.5) 80%, transparent 100%);
+}
+
+/* Legibility scrim over the text column only — angled so it clears out
+   before reaching the red mass on the right, instead of dimming the art
+   everywhere the way a flat overlay would. */
+.hero-art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(6, 6, 6, 0.86) 0%,
+    rgba(6, 6, 6, 0.5) 38%,
+    rgba(6, 6, 6, 0) 66%
+  );
+}
+
+/* Quiets the art right under the nav bar so the nav links keep contrast
+   wherever the red mass happens to sit. */
+.hero-art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(6, 6, 6, 0.7), transparent 22%);
 }
 
 .hero-inner {
@@ -163,6 +203,7 @@
   font-size: clamp(2.75rem, 7vw, 5.5rem);
   letter-spacing: -0.03em;
   line-height: 1.02;
+  text-transform: uppercase;
   max-width: 16ch;
   color: var(--chrome);
 }
@@ -187,16 +228,48 @@
   display: flex;
   align-items: stretch;
   gap: clamp(2rem, 5vw, 3.5rem);
-  padding: clamp(1.75rem, 3vw, 2.5rem) clamp(1.75rem, 4vw, 3rem);
-  background: linear-gradient(155deg, var(--panel-raised), var(--panel) 70%);
-  border: 1px solid var(--hairline);
-  border-radius: 20px;
-  box-shadow: 0 1px 0 rgba(220, 221, 225, 0.06) inset, 0 24px 48px -28px rgba(0, 0, 0, 0.85);
 }
 
 .impact-lead {
   flex: 0 0 auto;
   width: clamp(220px, 26vw, 300px);
+}
+
+.impact-lead-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.impact-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  font-stretch: 112.5%;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--xst-red);
+}
+
+.impact-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--xst-red);
+  animation: impact-live-flicker 2.4s infinite;
+}
+
+/* Uneven steps, not a smooth pulse — reads as a live/recording light
+   flickering rather than a breathing loading indicator. */
+@keyframes impact-live-flicker {
+  0%, 18%, 22%, 47%, 53%, 78%, 82%, 100% { opacity: 1; }
+  20% { opacity: 0.2; }
+  50% { opacity: 0.35; }
+  80% { opacity: 0.15; }
 }
 
 .impact-total {
@@ -270,6 +343,14 @@
   height: auto;
 }
 
+/* Empty on purpose — reserves the room the mark around the wordmark will
+   need once Calen sends it, so dropping that asset in later doesn't
+   reflow the section. */
+.signature-mark-slot {
+  width: 100%;
+  height: clamp(1.75rem, 5vh, 3rem);
+}
+
 .impact-ig {
   font-size: clamp(0.95rem, 1.1vw, 1.05rem);
   padding: 1.05rem 2.5rem;
@@ -297,6 +378,21 @@
   .impact-stats {
     grid-template-columns: 1fr;
     gap: 1.1rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .hero-art {
+    /* Smaller source, and reframed — at phone width the headline stacks
+       full-width over the art instead of sharing it with a dark half, so
+       the scrim needs to do less work and the red mass needs to stay
+       further into frame to still read as present. */
+    background-image: url("assets/hero-art-1200.webp");
+    background-position: 78% 45%;
+  }
+
+  .hero-art::after {
+    background: linear-gradient(180deg, rgba(6, 6, 6, 0.75) 0%, rgba(6, 6, 6, 0.35) 55%, rgba(6, 6, 6, 0.1) 100%);
   }
 }
 
@@ -337,6 +433,22 @@
   border-top: 1px solid var(--hairline);
 }
 
+/* Faint lift at the very bottom of the page — echoes the hero's glow one
+   more time at the close, instead of the page just running out into flat
+   .art-wash. Kept under .work-body's z-index via the footer's own stacking
+   (no z-index set here, so it paints at the section's base layer). */
+.contact.section::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -20%;
+  width: 140%;
+  height: 70%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(122, 13, 16, 0.14), transparent 70%);
+  pointer-events: none;
+}
+
 /* ---------- reduced motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -345,15 +457,22 @@
     transition: none;
   }
 
+  .impact-live-dot {
+    animation: none;
+    opacity: 1;
+  }
+
   /* Intro: show instantly, no fade, no travel. */
   .is-loading .page,
-  .is-loading [data-intro] {
+  .is-loading [data-intro],
+  .line-inner {
     opacity: 1;
     transform: none;
   }
 
   .is-ready .page,
-  .is-ready [data-intro] {
+  .is-ready [data-intro],
+  .is-ready .line-inner {
     transition: none;
   }
 }
@@ -369,7 +488,6 @@
 
 :root {
   --intro-dur: 0.5s;
-  --intro-step: 50ms;
 }
 
 .is-loading .page {
@@ -391,14 +509,42 @@
   transform: none;
   transition: opacity var(--intro-dur) var(--ease),
     transform var(--intro-dur) var(--ease);
-  transition-delay: calc(var(--intro-step) * var(--intro-i, 0));
 }
 
-.is-ready [data-intro="1"] { --intro-i: 1; }
-.is-ready [data-intro="2"] { --intro-i: 2; }
-.is-ready [data-intro="3"] { --intro-i: 3; }
-.is-ready [data-intro="4"] { --intro-i: 4; }
-.is-ready [data-intro="5"] { --intro-i: 5; }
+/* Nav can go the instant the page is ready — it doesn't wait on anything. */
+.is-ready [data-intro="1"] { transition-delay: 0.05s; }
+
+/* Everything below the hero heading waits until its per-line reveal (below)
+   has actually finished, so nothing else moves while the headline is still
+   resolving. That reveal's own worst case (a 3-line wrap at narrow widths,
+   90ms/line) lands around 0.88s — these delays clear it with room to spare. */
+.is-ready [data-intro="2"] { transition-delay: 0.62s; } /* hero copy */
+.is-ready [data-intro="3"] { transition-delay: 0.74s; } /* impact panel */
+.is-ready [data-intro="4"] { transition-delay: 0.84s; } /* impact signature */
+
+/* ---------- hero headline: per-line fade-up ----------
+   .line is the overflow-hidden mask; .line-inner is what actually moves.
+   Splitting these into two elements (see lines.js) is what makes each
+   *rendered* line rise out of its own mask instead of the whole headline
+   just translating as one block. */
+
+.hero-heading .line {
+  display: block;
+  overflow: hidden;
+}
+
+.hero-heading .line-inner {
+  display: block;
+  transform: translateY(110%);
+  opacity: 0;
+}
+
+.is-ready .hero-heading .line-inner {
+  transform: none;
+  opacity: 1;
+  transition: transform 0.7s var(--ease), opacity 0.7s var(--ease);
+  transition-delay: calc(90ms * var(--line-i, 0));
+}
 
 /* ============================================================
    first-load screen — the XST mark resolving out of a coarse

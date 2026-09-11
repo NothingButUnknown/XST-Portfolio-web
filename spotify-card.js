@@ -80,14 +80,18 @@
     return Math.max(0, Math.min(100, n));
   }
 
-  // ---- persistent floating mini-player ----
+  // ---- persistent scroll-following mini-player ----
   // The full card only exists inside the detail overlay, so closing that
   // overlay used to make a playing track vanish from view entirely — audio
   // kept going through the invisible embed host with nothing on screen to
-  // show or control it. This is the visible, playback-only substitute: a
-  // small pill fixed to the viewport (so it actually follows the screen
-  // instead of living in an invisible corner box), shown only while a
-  // track is playing and the full card isn't already on screen.
+  // show or control it. This is the visible, playback-only substitute.
+  //
+  // It's mounted into #miniPlayerTrack (the whole page body, footer
+  // included), not fixed to the viewport — position:sticky there means it
+  // rides along the full scroll and settles at the true bottom of the page
+  // over the footer, instead of stopping at the footer's top edge. The
+  // slot it sits in is height:0 so the sticky box itself adds no extra
+  // scroll space to the page; only the pill inside it is visible.
   var MINI = null;
 
   function isDetailOverlayOpen() {
@@ -97,6 +101,12 @@
 
   function ensureMiniPlayer() {
     if (MINI) return MINI;
+
+    var track = document.getElementById("miniPlayerTrack") || document.body;
+
+    var slot = document.createElement("div");
+    slot.className = "sc-mini-slot";
+    track.appendChild(slot);
 
     var el = document.createElement("div");
     el.className = "sc-mini";
@@ -114,7 +124,7 @@
       '  <div class="sc-mini-artist"></div>' +
       "</div>" +
       '<div class="sc-mini-progress"><div class="sc-mini-progress-fill"></div></div>';
-    document.body.appendChild(el);
+    slot.appendChild(el);
 
     var artImg = el.querySelector(".sc-mini-art");
     var titleEl = el.querySelector(".sc-mini-title");

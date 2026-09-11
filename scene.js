@@ -11,9 +11,10 @@ const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 
 const catalogue = JSON.parse(document.querySelector("#catalogue").textContent);
 
-// ---------- stream counts (hero total + per-cover, both derived from
-// catalogue[i].streams — never hand-typed, so they can't go stale when
-// Calen adds a cover) ----------
+// ---------- stream counts ----------
+// Catalog impact numbers (#impactTotal/#impactCovers/#impactBest/#impactAvg)
+// are now hand-typed real figures straight in index.html — Calen sent them,
+// so this no longer derives them from catalogue[i].streams at runtime.
 
 function formatStreams(n) {
   if (!n) return "";
@@ -22,22 +23,20 @@ function formatStreams(n) {
   return String(n);
 }
 
-const impactTotal = document.querySelector("#impactTotal");
-if (impactTotal) {
-  const totalStreams = catalogue.reduce((sum, item) => sum + (item.streams || 0), 0);
-  const bestCover = catalogue.reduce(
-    (best, item) => ((item.streams || 0) > (best.streams || 0) ? item : best),
-    catalogue[0]
-  );
-  const avgStreams = catalogue.length ? Math.round(totalStreams / catalogue.length) : 0;
-
-  impactTotal.innerHTML = `${formatStreams(totalStreams)}<span>+</span>`;
-  document.querySelector("#impactCovers").textContent = String(catalogue.length);
-  document.querySelector("#impactBest").textContent = formatStreams(bestCover.streams || 0);
-  document.querySelector("#impactBestLabel").textContent = bestCover.title
-    ? `Best-performing cover · ${bestCover.title}`
-    : "Best-performing cover";
-  document.querySelector("#impactAvg").textContent = formatStreams(avgStreams);
+// Renders a title with its last word in the outline accent face (see
+// .accent-outline in styles.css) — the same treatment as the static
+// headings, applied here because detail-title's text is data-driven.
+function setAccentTitle(el, text) {
+  el.textContent = "";
+  const words = text.trim().split(/\s+/);
+  const last = words.pop();
+  if (words.length) {
+    el.appendChild(document.createTextNode(words.join(" ") + " "));
+  }
+  const accent = document.createElement("span");
+  accent.className = "accent-outline";
+  accent.textContent = last;
+  el.appendChild(accent);
 }
 
 // ---------- dominant-color sampling (drives the per-cover glow) ----------
@@ -181,8 +180,6 @@ let targetRotationZ = -6;
 let currentRotationX = targetRotationX;
 let currentRotationY = targetRotationY;
 let currentRotationZ = targetRotationZ;
-let velocityX = 0;
-let velocityY = 0;
 let idleSpin = reduceMotion ? 0 : 0.045;
 
 let isDragging = false;
@@ -191,8 +188,6 @@ let startX = 0;
 let startY = 0;
 let startRotationX = 0;
 let startRotationY = 0;
-let lastX = 0;
-let lastY = 0;
 let activeIndex = -1;
 let loadProgress = reduceMotion ? 1 : 0;
 
@@ -273,13 +268,10 @@ const render = () => {
     loadProgress = Math.min(1, loadProgress + 0.035);
   }
 
+  // No momentum/coasting after release — target rotation only moves from
+  // direct input (drag or arrows) or this idle spin while untouched.
   if (!isDragging) {
-    targetRotationY += velocityY + idleSpin;
-    targetRotationX += velocityX;
-    velocityX *= 0.94;
-    velocityY *= 0.94;
-    if (Math.abs(velocityX) < 0.001) velocityX = 0;
-    if (Math.abs(velocityY) < 0.001) velocityY = 0;
+    targetRotationY += idleSpin;
   }
 
   currentRotationX += (targetRotationX - currentRotationX) * 0.14;
@@ -416,12 +408,8 @@ scene.addEventListener("pointerdown", (event) => {
   dragMoved = 0;
   startX = event.clientX;
   startY = event.clientY;
-  lastX = event.clientX;
-  lastY = event.clientY;
   startRotationX = targetRotationX;
   startRotationY = targetRotationY;
-  velocityX = 0;
-  velocityY = 0;
   scene.classList.add("is-dragging");
   scene.setPointerCapture(event.pointerId);
 });
@@ -435,16 +423,12 @@ scene.addEventListener("pointermove", (event) => {
   if (!isDragging) return;
   const dragX = event.clientX - startX;
   const dragY = event.clientY - startY;
-  const frameX = event.clientX - lastX;
-  const frameY = event.clientY - lastY;
 
   dragMoved = Math.max(dragMoved, Math.hypot(dragX, dragY));
+  // Direct 1:1-feeling mapping, no momentum: drag right spins right, drag
+  // down tilts down, and rotation stops the instant the pointer stops.
   targetRotationY = startRotationY + dragX * 0.24 * dragSensitivity;
   targetRotationX = startRotationX + dragY * 0.2 * dragSensitivity;
-  velocityY = frameX * 0.24 * dragSensitivity;
-  velocityX = frameY * 0.2 * dragSensitivity;
-  lastX = event.clientX;
-  lastY = event.clientY;
 });
 
 const finishDrag = (event) => {
@@ -474,8 +458,6 @@ scene.addEventListener("lostpointercapture", finishDrag);
 // Shared by the keyboard arrows and the on-screen arrow buttons, so a tap
 // on a button eases the same way a keypress does.
 const rotateStep = (deltaX, deltaY) => {
-  velocityX = 0;
-  velocityY = 0;
   targetRotationX += deltaX;
   targetRotationY += deltaY;
 };
@@ -651,7 +633,7 @@ const spotifyCard = detailSide && window.XSTSpotifyCard
     })
   : null;
 
-// Lets the floating mini-player (spotify-card.js) reopen the cover whose
+// Lets the sticky mini-player (spotify-card.js) reopen the cover whose
 // track is still playing after the detail overlay was closed.
 if (window.__xstSpotifyEmbed) {
   window.__xstSpotifyEmbed.reopenDetail = () => {
@@ -728,7 +710,7 @@ function openDetail(index) {
   detailImg.src = src;
   detailImg.alt = item.title || `Untitled — ${item.id}`;
   detailEyebrow.textContent = `${item.id} · ${item.kind.toUpperCase()}`;
-  detailTitle.textContent = item.title || `Untitled — ${item.id}`;
+  setAccentTitle(detailTitle, item.title || `Untitled — ${item.id}`);
   detailNote.textContent = item.note || "";
   detailSpecs.textContent = "Loading specs…";
   detailCta.textContent = "Commission a cover like this";
