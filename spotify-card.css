@@ -1,0 +1,660 @@
+/* ---------- Spotify card (detail overlay side panel) ---------- */
+/* Colors are Spotify's own — this widget depicts the Spotify app, not an
+   XST-branded surface, so it intentionally breaks from --xst-red/--chrome. */
+
+.spotify-card {
+  --sc-mx: 50%;
+  --sc-my: 50%;
+  width: min(320px, 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  cursor: default;
+  background: radial-gradient(25% 40% at 50% 30%, rgba(30, 215, 96, 0.15), rgba(8, 53, 24, 0.98));
+  box-shadow:
+    0px 1px 0px 0px rgba(255, 255, 255, 0.08) inset,
+    0px 0px 25px 5px rgba(46, 212, 105, 0.06),
+    0px 0px 40px 20px rgba(46, 212, 105, 0.03),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 10px 30px -5px rgba(0, 0, 0, 0.3);
+}
+
+.spotify-card::before,
+.spotify-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+.spotify-card::before {
+  background: radial-gradient(circle at var(--sc-mx) var(--sc-my), rgba(30, 215, 96, 0.12) 0%, transparent 60%);
+  filter: blur(25px);
+}
+
+.spotify-card::after {
+  background: radial-gradient(50% 50% at 50% 50%, rgba(30, 215, 96, 0.1) 0%, transparent 100%);
+  filter: blur(30px);
+  transform: translateY(20%);
+}
+
+.spotify-card:hover::before,
+.spotify-card:hover::after {
+  opacity: 1;
+}
+
+.spotify-card.is-hovered::before,
+.spotify-card.is-hovered::after {
+  opacity: 1;
+}
+
+.sc-top {
+  padding: 1.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+.sc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.sc-brand {
+  display: flex;
+  align-items: center;
+}
+
+.sc-mark {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  margin-right: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.9);
+  position: relative;
+  transition: box-shadow 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.spotify-card.is-hovered .sc-mark {
+  box-shadow: 0 0 15px rgba(30, 215, 96, 0.25);
+}
+
+.sc-mark svg {
+  width: 32px;
+  height: 32px;
+  fill: #1ed760;
+  transition: transform 0.7s ease;
+}
+
+.spotify-card.is-hovered .sc-mark svg {
+  transform: scale(1.08);
+  filter: drop-shadow(0 0 3px rgba(30, 215, 96, 0.5));
+}
+
+.sc-brand-text {
+  color: #fff;
+  font-weight: 500;
+  font-size: 1.125rem;
+  transition: letter-spacing 0.3s ease;
+}
+
+.spotify-card.is-hovered .sc-brand-text {
+  letter-spacing: 0.03em;
+}
+
+.sc-wordmark-static {
+  background: linear-gradient(90deg, #fff, #86efac);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+}
+
+.spotify-card.is-hovered .sc-wordmark-static {
+  opacity: 1;
+}
+
+.sc-wordmark-plain {
+  transition: opacity 0.4s ease-out;
+}
+
+.spotify-card.is-hovered .sc-wordmark-plain {
+  opacity: 0;
+  position: absolute;
+}
+
+.sc-tagline {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  background: linear-gradient(90deg, #1ed760, #1db954);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.spotify-card.is-hovered .sc-tagline {
+  opacity: 1;
+  transform: translateY(-2px);
+  filter: drop-shadow(0 0 2px rgba(30, 215, 96, 0.5));
+}
+
+.sc-open {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.2);
+  opacity: 0.7;
+  transform: translateX(5px);
+  transition: background 0.4s ease, color 0.4s ease, transform 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease;
+}
+
+.sc-open svg {
+  width: 18px;
+  height: 18px;
+}
+
+.spotify-card.is-hovered .sc-open {
+  background: #1ed760;
+  color: #060606;
+  opacity: 1;
+  transform: translateX(0) scale(1.02);
+  box-shadow: 0 0 10px rgba(30, 215, 96, 0.3);
+}
+
+.sc-open:focus-visible {
+  outline: 2px solid #1ed760;
+  outline-offset: 2px;
+}
+
+.sc-copy {
+  font-size: 0.85rem;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  color: #dcdde1;
+  opacity: 0.7;
+  margin-bottom: 1rem;
+  transition: opacity 0.5s ease, color 0.5s ease;
+}
+
+.spotify-card.is-hovered .sc-copy {
+  opacity: 1;
+}
+
+.sc-rule {
+  height: 1px;
+  margin: 0 0.5rem 1.25rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: box-shadow 0.5s ease;
+}
+
+.spotify-card.is-hovered .sc-rule {
+  box-shadow: 0 0 8px rgba(30, 215, 96, 0.2);
+}
+
+.sc-art {
+  position: relative;
+  width: 192px;
+  height: 192px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 5px 15px -5px rgba(0, 0, 0, 0.2);
+  transition: box-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.spotify-card.is-hovered .sc-art {
+  box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.4), 0 0 10px rgba(30, 215, 96, 0.15);
+}
+
+.sc-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.7s ease, filter 0.7s ease;
+}
+
+.spotify-card.is-hovered .sc-art img {
+  transform: scale(1.02);
+  filter: brightness(1.05) contrast(1.02);
+}
+
+.sc-art-scrim {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0.7));
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.spotify-card.is-hovered .sc-art-scrim {
+  opacity: 1;
+}
+
+.sc-play-big {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #1ed760;
+  color: #060606;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: scale(0);
+  opacity: 0;
+  box-shadow: 0 0 20px rgba(30, 215, 96, 0.5);
+  transition: transform 0.3s ease, opacity 0.3s ease, background 0.2s ease;
+}
+
+.spotify-card.is-hovered .sc-play-big {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.sc-play-big:hover {
+  background: #4ade80;
+  transform: scale(1.1);
+}
+
+.sc-play-big svg {
+  width: 20px;
+  height: 20px;
+}
+
+.sc-art-actions {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sc-chip {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  transition: background 0.3s ease, transform 0.3s ease;
+}
+
+.sc-chip:hover {
+  background: rgba(0, 0, 0, 0.6);
+  transform: scale(1.05);
+}
+
+.sc-chip svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sc-chip.is-liked svg {
+  filter: drop-shadow(0 0 2px rgba(30, 215, 96, 0.5));
+}
+
+.sc-menu {
+  position: fixed;
+  width: 200px;
+  z-index: 400;
+  background: rgba(8, 53, 24, 0.92);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25), 0 0 5px rgba(255, 255, 255, 0.05);
+  padding: 0.4rem 0;
+  animation: sc-menu-in 0.15s ease-out;
+}
+
+@keyframes sc-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sc-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  text-align: left;
+  padding: 0.55rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #fff;
+  transition: background 0.15s ease;
+}
+
+.sc-menu button:hover {
+  background: rgba(30, 215, 96, 0.12);
+}
+
+.sc-menu button svg {
+  width: 15px;
+  height: 15px;
+  color: rgba(30, 215, 96, 0.7);
+  flex: none;
+}
+
+.sc-menu-rule {
+  height: 1px;
+  margin: 0.25rem 0;
+  background: rgba(30, 215, 96, 0.1);
+}
+
+.sc-equalizer {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 0.2rem;
+  height: 28px;
+  margin: 0.75rem 0 1.5rem;
+}
+
+.sc-equalizer[hidden] {
+  display: none;
+}
+
+.sc-equalizer span {
+  width: 3px;
+  border-radius: 999px;
+  background: #1ed760;
+  opacity: 0.75;
+  filter: drop-shadow(0 0 1px rgba(30, 215, 96, 0.5));
+  animation: sc-wave 1.2s ease-in-out infinite;
+}
+
+.sc-equalizer span:nth-child(1) { animation-duration: 1.1s; }
+.sc-equalizer span:nth-child(2) { animation-duration: 1.2s; }
+.sc-equalizer span:nth-child(3) { animation-duration: 1.3s; }
+.sc-equalizer span:nth-child(4) { animation-duration: 1.4s; }
+.sc-equalizer span:nth-child(5) { animation-duration: 1.5s; }
+
+@keyframes sc-wave {
+  0%,
+  100% {
+    height: 5px;
+  }
+  50% {
+    height: 22px;
+  }
+}
+
+.sc-player {
+  position: relative;
+  z-index: 1;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sc-progress {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 0.75rem;
+  box-shadow: 0 0 3px rgba(30, 215, 96, 0.2);
+}
+
+.sc-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(30, 215, 96, 0.8), #1ed760);
+  box-shadow: 0 0 6px rgba(30, 215, 96, 0.4);
+  width: 0%;
+}
+
+.sc-track-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.sc-track-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  transition: color 0.4s ease;
+}
+
+.spotify-card.is-hovered .sc-track-title {
+  color: #4ade80;
+}
+
+.sc-track-artist {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  margin-top: 0.15rem;
+}
+
+.sc-time {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sc-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sc-transport {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sc-btn-round {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: background 0.2s ease;
+}
+
+.sc-btn-round:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sc-btn-round svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sc-play {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  color: #060606;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.sc-play:hover {
+  transform: scale(1.05);
+  filter: brightness(1.05);
+}
+
+.sc-play svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sc-volume {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sc-volume-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  transition: background 0.2s ease;
+}
+
+.sc-volume-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sc-volume-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sc-volume-track {
+  width: 64px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.sc-volume-track:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.sc-volume-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: #fff;
+  width: 75%;
+  transition: background 0.3s ease;
+}
+
+.sc-volume-track:hover .sc-volume-fill {
+  background: #1ed760;
+}
+
+.sc-volume-knob {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  transform: translate(-50%, -50%) scale(0);
+  opacity: 0;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  left: 75%;
+}
+
+.spotify-card.is-hovered .sc-volume-knob,
+.sc-volume-track.is-dragging .sc-volume-knob {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+.sc-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+  border: 1px solid rgba(30, 215, 96, 0.2);
+  opacity: 0;
+  transition: opacity 0.7s ease;
+}
+
+.spotify-card.is-hovered .sc-ring {
+  opacity: 1;
+  animation: sc-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes sc-pulse {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.005);
+  }
+}
+
+.sc-foot-glow {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(46, 212, 105, 0.5), transparent);
+  filter: blur(1px);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.spotify-card.is-hovered .sc-foot-glow {
+  opacity: 1;
+}
+
+/* ---------- placement inside the detail overlay ---------- */
+
+.detail-side {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1300px) {
+  .detail-body {
+    gap: 2.5rem;
+  }
+
+  .detail-art {
+    width: min(30vw, 380px);
+  }
+}
+
+@media (max-width: 900px) {
+  .detail-side {
+    width: min(320px, 100%);
+  }
+}

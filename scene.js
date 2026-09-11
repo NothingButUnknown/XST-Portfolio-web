@@ -601,6 +601,14 @@ const detailNote = document.querySelector("#detailNote");
 const detailSpecs = document.querySelector("#detailSpecs");
 const detailCta = document.querySelector("#detailCta");
 const filmstrip = document.querySelector("#filmstrip");
+const detailSide = document.querySelector("#detailSide");
+
+const spotifyCard = detailSide && window.XSTSpotifyCard
+  ? window.XSTSpotifyCard.create(detailSide, {
+      onPrev: () => document.querySelector("#detailPrev")?.click(),
+      onNext: () => document.querySelector("#detailNext")?.click(),
+    })
+  : null;
 
 let lastFocusedNode = null;
 
@@ -681,6 +689,14 @@ function openDetail(index) {
     detailSpecs.textContent = `${probe.naturalWidth} × ${probe.naturalHeight} · JPG`;
   };
   probe.src = src;
+
+  spotifyCard?.update({
+    title: item.title || `Untitled — ${item.id}`,
+    artist: item.note || "XST",
+    duration: item.duration || 180,
+    albumArt: src,
+    spotify: item.spotify || "",
+  });
 
   thumbs.forEach((thumb, i) => thumb.classList.toggle("is-active", i === index));
 

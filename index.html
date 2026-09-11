@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="page.css" />
     <link rel="stylesheet" href="carousel.css" />
+    <link rel="stylesheet" href="spotify-card.css" />
     <script>
       document.documentElement.classList.add("is-loading");
     </script>
@@ -155,33 +156,41 @@
             </button>
           </div>
         </div>
+        <!-- Spotify player card. Search links are placeholders — swap
+             catalogue[i].spotify for the real track URL when Calen sends it. -->
+        <div class="detail-side" id="detailSide"></div>
       </div>
       <div class="filmstrip" id="filmstrip" role="listbox" aria-label="All pieces"></div>
     </section>
 
+    <!-- "duration" (seconds) and "spotify" are placeholders for the side
+         player card. duration is an estimate — swap for the real track
+         length. spotify defaults to a Spotify search for title + artist
+         (always resolves); replace with the exact track URL once Calen
+         sends the real links. -->
     <script type="application/json" id="catalogue">
       [
-        { "id": "XST-001", "file": "cover-01-sunmomi.jpg", "kind": "cover", "title": "Sunmomi", "note": "AVARU", "price": 30 },
-        { "id": "XST-002", "file": "cover-02-marola.jpg", "kind": "cover", "title": "Marola", "note": "LXNGVX × SUNJI", "price": 30 },
-        { "id": "XST-003", "file": "cover-03-brega-my-love.jpg", "kind": "cover", "title": "Brega My Love", "note": "SK3TCH01", "price": 30 },
-        { "id": "XST-004", "file": "cover-04-mizu-mizu.jpg", "kind": "cover", "title": "Mizu Mizu", "note": "SUNJI", "price": 30 },
-        { "id": "XST-005", "file": "cover-05-mutilator.jpg", "kind": "cover", "title": "Mutilator", "note": "ZMAJOR", "price": 30 },
-        { "id": "XST-006", "file": "cover-06-confess-your-love-funk.jpg", "kind": "cover", "title": "Confess Your Love Funk", "note": "ZMAJOR × Prey", "price": 30 },
-        { "id": "XST-007", "file": "cover-07-poh-in-brazil.jpg", "kind": "cover", "title": "Poh In Brazil", "note": "APLCO", "price": 30 },
-        { "id": "XST-008", "file": "cover-08-montagem-suco.jpg", "kind": "cover", "title": "Montagem Suco", "note": "APLCO × HXI × staplegun", "price": 30 },
-        { "id": "XST-009", "file": "cover-09-hworld.jpg", "kind": "cover", "title": "Hworld", "note": "Hwungii", "price": 30 },
-        { "id": "XST-010", "file": "cover-10-montagem-interzone.jpg", "kind": "cover", "title": "Montagem Interzone", "note": "KREZUS", "price": 30 },
-        { "id": "XST-011", "file": "cover-11-agora-vem.jpg", "kind": "cover", "title": "Agora Vem", "note": "LXNGVX × RXVNG", "price": 30 },
-        { "id": "XST-012", "file": "cover-12-hypergnosis.jpg", "kind": "cover", "title": "Hypergnosis", "note": "MDR", "price": 30 },
-        { "id": "XST-013", "file": "cover-13-dale-mucho.jpg", "kind": "cover", "title": "Dale Mucho", "note": "MDR × SUNJI", "price": 30 },
-        { "id": "XST-014", "file": "cover-14-la-no-bico.jpg", "kind": "cover", "title": "La No Bico", "note": "NXGHT", "price": 30 },
-        { "id": "XST-015", "file": "cover-15-montagem-bam-bam.jpg", "kind": "cover", "title": "Montagem Bam Bam", "note": "NXGHT", "price": 30 },
-        { "id": "XST-016", "file": "cover-16-montagem-dela.jpg", "kind": "cover", "title": "Montagem Dela", "note": "Polaris", "price": 30 },
-        { "id": "XST-017", "file": "cover-17-montagem-decimator.jpg", "kind": "cover", "title": "Montagem Decimator", "note": "Polaris × DJ usof × AETHRA × GULIEN", "price": 30 },
-        { "id": "XST-018", "file": "cover-18-chama-viva.jpg", "kind": "cover", "title": "Chama Viva", "note": "SUNJI × NEOVERS", "price": 30 },
-        { "id": "XST-019", "file": "cover-19-dinha.jpg", "kind": "cover", "title": "Dinha", "note": "XST", "price": 30 },
-        { "id": "XST-020", "file": "cover-20-mama-mia.jpg", "kind": "cover", "title": "Mama Mia", "note": "Zime Media", "price": 30 },
-        { "id": "XST-021", "file": "cover-21-drippin-funk.jpg", "kind": "cover", "title": "Drippin Funk", "note": "ZMAJOR", "price": 30 }
+        { "id": "XST-001", "file": "cover-01-sunmomi.jpg", "kind": "cover", "title": "Sunmomi", "note": "AVARU", "price": 30, "duration": 172, "spotify": "https://open.spotify.com/search/Sunmomi%20AVARU" },
+        { "id": "XST-002", "file": "cover-02-marola.jpg", "kind": "cover", "title": "Marola", "note": "LXNGVX × SUNJI", "price": 30, "duration": 188, "spotify": "https://open.spotify.com/search/Marola%20LXNGVX%20SUNJI" },
+        { "id": "XST-003", "file": "cover-03-brega-my-love.jpg", "kind": "cover", "title": "Brega My Love", "note": "SK3TCH01", "price": 30, "duration": 165, "spotify": "https://open.spotify.com/search/Brega%20My%20Love%20SK3TCH01" },
+        { "id": "XST-004", "file": "cover-04-mizu-mizu.jpg", "kind": "cover", "title": "Mizu Mizu", "note": "SUNJI", "price": 30, "duration": 179, "spotify": "https://open.spotify.com/search/Mizu%20Mizu%20SUNJI" },
+        { "id": "XST-005", "file": "cover-05-mutilator.jpg", "kind": "cover", "title": "Mutilator", "note": "ZMAJOR", "price": 30, "duration": 203, "spotify": "https://open.spotify.com/search/Mutilator%20ZMAJOR" },
+        { "id": "XST-006", "file": "cover-06-confess-your-love-funk.jpg", "kind": "cover", "title": "Confess Your Love Funk", "note": "ZMAJOR × Prey", "price": 30, "duration": 194, "spotify": "https://open.spotify.com/search/Confess%20Your%20Love%20Funk%20ZMAJOR%20Prey" },
+        { "id": "XST-007", "file": "cover-07-poh-in-brazil.jpg", "kind": "cover", "title": "Poh In Brazil", "note": "APLCO", "price": 30, "duration": 158, "spotify": "https://open.spotify.com/search/Poh%20In%20Brazil%20APLCO" },
+        { "id": "XST-008", "file": "cover-08-montagem-suco.jpg", "kind": "cover", "title": "Montagem Suco", "note": "APLCO × HXI × staplegun", "price": 30, "duration": 211, "spotify": "https://open.spotify.com/search/Montagem%20Suco%20APLCO%20HXI%20staplegun" },
+        { "id": "XST-009", "file": "cover-09-hworld.jpg", "kind": "cover", "title": "Hworld", "note": "Hwungii", "price": 30, "duration": 169, "spotify": "https://open.spotify.com/search/Hworld%20Hwungii" },
+        { "id": "XST-010", "file": "cover-10-montagem-interzone.jpg", "kind": "cover", "title": "Montagem Interzone", "note": "KREZUS", "price": 30, "duration": 226, "spotify": "https://open.spotify.com/search/Montagem%20Interzone%20KREZUS" },
+        { "id": "XST-011", "file": "cover-11-agora-vem.jpg", "kind": "cover", "title": "Agora Vem", "note": "LXNGVX × RXVNG", "price": 30, "duration": 183, "spotify": "https://open.spotify.com/search/Agora%20Vem%20LXNGVX%20RXVNG" },
+        { "id": "XST-012", "file": "cover-12-hypergnosis.jpg", "kind": "cover", "title": "Hypergnosis", "note": "MDR", "price": 30, "duration": 240, "spotify": "https://open.spotify.com/search/Hypergnosis%20MDR" },
+        { "id": "XST-013", "file": "cover-13-dale-mucho.jpg", "kind": "cover", "title": "Dale Mucho", "note": "MDR × SUNJI", "price": 30, "duration": 176, "spotify": "https://open.spotify.com/search/Dale%20Mucho%20MDR%20SUNJI" },
+        { "id": "XST-014", "file": "cover-14-la-no-bico.jpg", "kind": "cover", "title": "La No Bico", "note": "NXGHT", "price": 30, "duration": 161, "spotify": "https://open.spotify.com/search/La%20No%20Bico%20NXGHT" },
+        { "id": "XST-015", "file": "cover-15-montagem-bam-bam.jpg", "kind": "cover", "title": "Montagem Bam Bam", "note": "NXGHT", "price": 30, "duration": 197, "spotify": "https://open.spotify.com/search/Montagem%20Bam%20Bam%20NXGHT" },
+        { "id": "XST-016", "file": "cover-16-montagem-dela.jpg", "kind": "cover", "title": "Montagem Dela", "note": "Polaris", "price": 30, "duration": 185, "spotify": "https://open.spotify.com/search/Montagem%20Dela%20Polaris" },
+        { "id": "XST-017", "file": "cover-17-montagem-decimator.jpg", "kind": "cover", "title": "Montagem Decimator", "note": "Polaris × DJ usof × AETHRA × GULIEN", "price": 30, "duration": 219, "spotify": "https://open.spotify.com/search/Montagem%20Decimator%20Polaris%20DJ%20usof%20AETHRA%20GULIEN" },
+        { "id": "XST-018", "file": "cover-18-chama-viva.jpg", "kind": "cover", "title": "Chama Viva", "note": "SUNJI × NEOVERS", "price": 30, "duration": 174, "spotify": "https://open.spotify.com/search/Chama%20Viva%20SUNJI%20NEOVERS" },
+        { "id": "XST-019", "file": "cover-19-dinha.jpg", "kind": "cover", "title": "Dinha", "note": "XST", "price": 30, "duration": 152, "spotify": "https://open.spotify.com/search/Dinha%20XST" },
+        { "id": "XST-020", "file": "cover-20-mama-mia.jpg", "kind": "cover", "title": "Mama Mia", "note": "Zime Media", "price": 30, "duration": 190, "spotify": "https://open.spotify.com/search/Mama%20Mia%20Zime%20Media" },
+        { "id": "XST-021", "file": "cover-21-drippin-funk.jpg", "kind": "cover", "title": "Drippin Funk", "note": "ZMAJOR", "price": 30, "duration": 206, "spotify": "https://open.spotify.com/search/Drippin%20Funk%20ZMAJOR" }
       ]
     </script>
 
@@ -219,6 +228,7 @@
         setTimeout(reveal, 1200);
       })();
     </script>
+    <script src="spotify-card.js"></script>
     <script src="scene.js"></script>
     <script src="carousel.js"></script>
   </body>
