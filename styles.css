@@ -12,8 +12,12 @@
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   /* Sphere sized off its own tile extent (see .scene-inner / .cover-node),
      not raw viewport units — keeps every tile inside the .scene box at any
-     window aspect ratio instead of only at tall/narrow ones. */
-  --sphere: min(72vw, 60vh, 640px);
+     window aspect ratio instead of only at tall/narrow ones. The 640px cap
+     used to bind on every desktop monitor (1440p and up all rendered the
+     same small sphere), leaving a dead band of empty width either side —
+     raised so the sphere actually grows on bigger screens instead of just
+     floating in more black. */
+  --sphere: min(72vw, 78vh, 860px);
   --tile: calc(var(--sphere) * 0.22);
   --tile-radius: 12px;
 }
@@ -63,25 +67,14 @@ a {
   outline-offset: 3px;
 }
 
-/* ---------- dot pattern (scoped to the hero, see page.css for placement) ---------- */
-
-.dot-pattern {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: radial-gradient(rgba(220, 221, 225, 0.16) 1px, transparent 1.5px);
-  background-size: 24px 24px;
-  mask-image: radial-gradient(320px circle at 50% 42%, black, transparent);
-  -webkit-mask-image: radial-gradient(320px circle at 50% 42%, black, transparent);
-}
-
 /* ---------- scene ---------- */
 
 .scene {
   position: relative;
   width: 100%;
-  height: min(88vh, 900px);
+  max-width: 1500px;
+  margin: 0 auto;
+  height: min(90vh, 980px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -455,12 +448,32 @@ a {
   font-size: 0.85rem;
   letter-spacing: 0.02em;
   padding: 0.9rem 1.6rem;
-  transition: background 0.2s ease, transform 0.2s ease;
+  border-radius: 10px;
+  /* Same red-tinted "raised surface" language as .work-cta / .detail-nav-btn
+     hover elsewhere on the page: a bright top bevel, a hairline ring, and an
+     ambient glow — so the button reads as a surface sitting above the page
+     even before anyone touches it. */
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 0 0 1px rgba(224, 27, 27, 0.4), 0 16px 32px -16px rgba(224, 27, 27, 0.65);
+  transition: background 0.2s ease, transform 0.2s var(--ease), box-shadow 0.25s ease;
 }
 
 .button-primary:hover {
   background: var(--xst-red-hot);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.16) inset,
+    0 0 0 1px rgba(255, 43, 31, 0.5), 0 20px 40px -14px rgba(224, 27, 27, 0.8);
+}
+
+.button-primary:focus-visible {
+  outline: 2px solid var(--xst-red-hot);
+  outline-offset: 3px;
+}
+
+.button-primary:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 0 0 1px rgba(224, 27, 27, 0.4), 0 8px 18px -10px rgba(224, 27, 27, 0.55);
 }
 
 .detail-nav {

@@ -13,6 +13,20 @@
 (function () {
   const artistsDataEl = document.querySelector("#artistsData");
   const artists = artistsDataEl ? JSON.parse(artistsDataEl.textContent) : [];
+  const labelsDataEl = document.querySelector("#labelsData");
+  const labels = labelsDataEl ? JSON.parse(labelsDataEl.textContent) : [];
+
+  // No real roster or label list yet — hide the whole section (and its nav
+  // link) instead of showing an empty carousel shell. A fabricated roster
+  // reads as a lie on a real portfolio; an absent one just reads as "coming
+  // soon." Fill #artistsData/#labelsData with real data and this section
+  // un-hides itself — no code changes needed.
+  if (!artists.length && !labels.length) {
+    const emptySection = document.querySelector("#artists");
+    if (emptySection) emptySection.hidden = true;
+    document.querySelector("#navArtists")?.remove();
+    return;
+  }
   if (!artists.length) return;
 
   const section = document.querySelector("#artists");
@@ -312,8 +326,6 @@
   // a target speed (exponential smoothing, never a hard cut), so hovering
   // the ticker glides it down to a stop instead of snapping. Runs inside the
   // shared frame() loop / #artists visibility gate above — no separate rAF.
-  const labelsDataEl = document.querySelector("#labelsData");
-  const labels = labelsDataEl ? JSON.parse(labelsDataEl.textContent) : [];
   const labelsTrack = document.querySelector("#labelsTrack");
   const tickerMask = document.querySelector(".ticker-mask");
 

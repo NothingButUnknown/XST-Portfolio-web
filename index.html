@@ -28,7 +28,7 @@
         <a class="wordmark" href="#top"><img src="assets/xst-logo.png" alt="XST" /></a>
         <nav class="site-nav-links" aria-label="Primary">
           <a href="#work">Work</a>
-          <a href="#artists">Artists</a>
+          <a href="#artists" id="navArtists">Artists</a>
           <a href="#contact">Contact</a>
         </nav>
       </div>
@@ -41,32 +41,47 @@
     <main id="top">
       <!-- About / hero -->
       <section class="section hero" id="about" aria-label="About XST">
-        <div class="dot-pattern" aria-hidden="true"></div>
         <div class="container hero-inner">
           <h1 class="hero-heading" data-intro="2">Cover art that stops the scroll.</h1>
           <p class="hero-copy" data-intro="3">
             Every good song needs cover art that grabs someone before they hit play. The art is the
             first thing they see, and it's what makes them curious enough to listen.
           </p>
-          <p class="hero-copy" data-intro="3">
-            XST designs covers, banners, logos, and posters — mostly for funk, phonk, and montagem
-            artists. Red, chrome, black. Fast turnarounds, files delivered finished.
-          </p>
         </div>
-      </section>
 
-      <!-- Hub: logo + Instagram link -->
-      <section class="section hub" id="hub" aria-label="Follow XST">
-        <div class="container hub-inner">
-          <img class="hub-logo" src="assets/xst-logo.png" alt="XST" />
-          <a
-            class="hub-link"
-            href="https://www.instagram.com/xst.graphic"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Instagram
-          </a>
+        <!-- Impact panel: the receipts behind the claim above. Every number
+             here is derived from #catalogue's "streams" field at runtime
+             (see scene.js) — never hand-typed, so it can't go stale. The
+             figures themselves are still PLACEHOLDERS until Calen sends
+             real per-track stream counts (see the comment on #catalogue). -->
+        <div class="container impact-inner" data-intro="3">
+          <div class="impact-panel">
+            <div class="impact-lead">
+              <p class="section-eyebrow">Catalog impact</p>
+              <p class="impact-total" id="impactTotal">—</p>
+              <p class="impact-caption">Streams across every track XST has shipped a cover for.</p>
+            </div>
+            <div class="impact-stats">
+              <div class="impact-stat">
+                <span class="impact-stat-value" id="impactCovers">—</span>
+                <span class="impact-stat-label">Covers shipped</span>
+              </div>
+              <div class="impact-stat">
+                <span class="impact-stat-value" id="impactBest">—</span>
+                <span class="impact-stat-label" id="impactBestLabel">Best-performing cover</span>
+              </div>
+              <div class="impact-stat">
+                <span class="impact-stat-value" id="impactAvg">—</span>
+                <span class="impact-stat-label">Average per cover</span>
+              </div>
+            </div>
+          </div>
+          <div class="impact-signature">
+            <img class="impact-logo" src="assets/xst-logo.png" alt="XST" />
+            <a class="button-primary impact-ig" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer">
+              See the receipts on Instagram
+            </a>
+          </div>
         </div>
       </section>
 
@@ -74,7 +89,7 @@
       <section class="section work" id="work" aria-label="Cover art gallery">
         <div class="container work-head">
           <p class="section-eyebrow">Cover art</p>
-          <span class="index-readout" id="indexReadout">— / 025</span>
+          <span class="index-readout" id="indexReadout">— / 021</span>
         </div>
 
         <div class="scene" id="scene" aria-label="Rotating gallery of XST cover art. Drag to rotate, use arrow keys, tap a piece to view it." tabindex="0">
@@ -163,53 +178,64 @@
       <div class="filmstrip" id="filmstrip" role="listbox" aria-label="All pieces"></div>
     </section>
 
-    <!-- "duration" (seconds) and "spotify" are placeholders for the side
-         player card. duration is an estimate — swap for the real track
-         length. spotify defaults to a Spotify search for title + artist
-         (always resolves); replace with the exact track URL once Calen
-         sends the real links. -->
+    <!-- Real Spotify audio for the detail card. The iframe stays off-canvas
+         (never display:none — that suspends playback) and the card's own
+         UI drives it entirely; visitors never see Spotify's own player
+         chrome, only ours. Tracks without a resolved spotifyId in the
+         catalogue have nothing to load here, so the card falls back to
+         "open in Spotify" for those. -->
+    <div id="spotifyEmbedHost" class="spotify-embed-host" aria-hidden="true"></div>
+    <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+
+    <!-- "duration" (seconds) is a placeholder estimate until Calen sends the
+         real track length for the entries without a resolved "spotifyId".
+         "spotifyId" is a real Spotify track ID, found by matching title +
+         artist against open.spotify.com — where one was found, "spotify"
+         points at that real track and the card plays the actual song. Where
+         no confident match turned up, "spotify" falls back to a Spotify
+         search link and the card has nothing to actually play — swap in the
+         real link once Calen sends it. "streams" is a PLACEHOLDER figure —
+         it renders on the hero (total) and in the detail overlay (per
+         track) as social proof, and MUST be swapped for Calen's real
+         per-track stream counts before this site goes public. -->
     <script type="application/json" id="catalogue">
       [
-        { "id": "XST-001", "file": "cover-01-sunmomi.jpg", "kind": "cover", "title": "Sunmomi", "note": "AVARU", "price": 30, "duration": 172, "spotify": "https://open.spotify.com/search/Sunmomi%20AVARU" },
-        { "id": "XST-002", "file": "cover-02-marola.jpg", "kind": "cover", "title": "Marola", "note": "LXNGVX × SUNJI", "price": 30, "duration": 188, "spotify": "https://open.spotify.com/search/Marola%20LXNGVX%20SUNJI" },
-        { "id": "XST-003", "file": "cover-03-brega-my-love.jpg", "kind": "cover", "title": "Brega My Love", "note": "SK3TCH01", "price": 30, "duration": 165, "spotify": "https://open.spotify.com/search/Brega%20My%20Love%20SK3TCH01" },
-        { "id": "XST-004", "file": "cover-04-mizu-mizu.jpg", "kind": "cover", "title": "Mizu Mizu", "note": "SUNJI", "price": 30, "duration": 179, "spotify": "https://open.spotify.com/search/Mizu%20Mizu%20SUNJI" },
-        { "id": "XST-005", "file": "cover-05-mutilator.jpg", "kind": "cover", "title": "Mutilator", "note": "ZMAJOR", "price": 30, "duration": 203, "spotify": "https://open.spotify.com/search/Mutilator%20ZMAJOR" },
-        { "id": "XST-006", "file": "cover-06-confess-your-love-funk.jpg", "kind": "cover", "title": "Confess Your Love Funk", "note": "ZMAJOR × Prey", "price": 30, "duration": 194, "spotify": "https://open.spotify.com/search/Confess%20Your%20Love%20Funk%20ZMAJOR%20Prey" },
-        { "id": "XST-007", "file": "cover-07-poh-in-brazil.jpg", "kind": "cover", "title": "Poh In Brazil", "note": "APLCO", "price": 30, "duration": 158, "spotify": "https://open.spotify.com/search/Poh%20In%20Brazil%20APLCO" },
-        { "id": "XST-008", "file": "cover-08-montagem-suco.jpg", "kind": "cover", "title": "Montagem Suco", "note": "APLCO × HXI × staplegun", "price": 30, "duration": 211, "spotify": "https://open.spotify.com/search/Montagem%20Suco%20APLCO%20HXI%20staplegun" },
-        { "id": "XST-009", "file": "cover-09-hworld.jpg", "kind": "cover", "title": "Hworld", "note": "Hwungii", "price": 30, "duration": 169, "spotify": "https://open.spotify.com/search/Hworld%20Hwungii" },
-        { "id": "XST-010", "file": "cover-10-montagem-interzone.jpg", "kind": "cover", "title": "Montagem Interzone", "note": "KREZUS", "price": 30, "duration": 226, "spotify": "https://open.spotify.com/search/Montagem%20Interzone%20KREZUS" },
-        { "id": "XST-011", "file": "cover-11-agora-vem.jpg", "kind": "cover", "title": "Agora Vem", "note": "LXNGVX × RXVNG", "price": 30, "duration": 183, "spotify": "https://open.spotify.com/search/Agora%20Vem%20LXNGVX%20RXVNG" },
-        { "id": "XST-012", "file": "cover-12-hypergnosis.jpg", "kind": "cover", "title": "Hypergnosis", "note": "MDR", "price": 30, "duration": 240, "spotify": "https://open.spotify.com/search/Hypergnosis%20MDR" },
-        { "id": "XST-013", "file": "cover-13-dale-mucho.jpg", "kind": "cover", "title": "Dale Mucho", "note": "MDR × SUNJI", "price": 30, "duration": 176, "spotify": "https://open.spotify.com/search/Dale%20Mucho%20MDR%20SUNJI" },
-        { "id": "XST-014", "file": "cover-14-la-no-bico.jpg", "kind": "cover", "title": "La No Bico", "note": "NXGHT", "price": 30, "duration": 161, "spotify": "https://open.spotify.com/search/La%20No%20Bico%20NXGHT" },
-        { "id": "XST-015", "file": "cover-15-montagem-bam-bam.jpg", "kind": "cover", "title": "Montagem Bam Bam", "note": "NXGHT", "price": 30, "duration": 197, "spotify": "https://open.spotify.com/search/Montagem%20Bam%20Bam%20NXGHT" },
-        { "id": "XST-016", "file": "cover-16-montagem-dela.jpg", "kind": "cover", "title": "Montagem Dela", "note": "Polaris", "price": 30, "duration": 185, "spotify": "https://open.spotify.com/search/Montagem%20Dela%20Polaris" },
-        { "id": "XST-017", "file": "cover-17-montagem-decimator.jpg", "kind": "cover", "title": "Montagem Decimator", "note": "Polaris × DJ usof × AETHRA × GULIEN", "price": 30, "duration": 219, "spotify": "https://open.spotify.com/search/Montagem%20Decimator%20Polaris%20DJ%20usof%20AETHRA%20GULIEN" },
-        { "id": "XST-018", "file": "cover-18-chama-viva.jpg", "kind": "cover", "title": "Chama Viva", "note": "SUNJI × NEOVERS", "price": 30, "duration": 174, "spotify": "https://open.spotify.com/search/Chama%20Viva%20SUNJI%20NEOVERS" },
-        { "id": "XST-019", "file": "cover-19-dinha.jpg", "kind": "cover", "title": "Dinha", "note": "XST", "price": 30, "duration": 152, "spotify": "https://open.spotify.com/search/Dinha%20XST" },
-        { "id": "XST-020", "file": "cover-20-mama-mia.jpg", "kind": "cover", "title": "Mama Mia", "note": "Zime Media", "price": 30, "duration": 190, "spotify": "https://open.spotify.com/search/Mama%20Mia%20Zime%20Media" },
-        { "id": "XST-021", "file": "cover-21-drippin-funk.jpg", "kind": "cover", "title": "Drippin Funk", "note": "ZMAJOR", "price": 30, "duration": 206, "spotify": "https://open.spotify.com/search/Drippin%20Funk%20ZMAJOR" }
+        { "id": "XST-001", "file": "cover-01-sunmomi.jpg", "kind": "cover", "title": "Sunmomi", "note": "AVARU", "price": 30, "duration": 172, "streams": 2483000, "spotifyId": "03X6nC5ydChayICLjFt866", "spotify": "https://open.spotify.com/track/03X6nC5ydChayICLjFt866" },
+        { "id": "XST-002", "file": "cover-02-marola.jpg", "kind": "cover", "title": "Marola", "note": "LXNGVX × SUNJI", "price": 30, "duration": 188, "streams": 1102000, "spotifyId": "1uxXUkZoFOG1ogg2oHcmUl", "spotify": "https://open.spotify.com/track/1uxXUkZoFOG1ogg2oHcmUl" },
+        { "id": "XST-003", "file": "cover-03-brega-my-love.jpg", "kind": "cover", "title": "Brega My Love", "note": "SK3TCH01", "price": 30, "duration": 165, "streams": 640500, "spotifyId": "2LXMIlC26jb4uFoYCtPWRS", "spotify": "https://open.spotify.com/track/2LXMIlC26jb4uFoYCtPWRS" },
+        { "id": "XST-004", "file": "cover-04-mizu-mizu.jpg", "kind": "cover", "title": "Mizu Mizu", "note": "SUNJI", "price": 30, "duration": 179, "streams": 3215000, "spotifyId": "4ElpJov37xL3weU8XGekqt", "spotify": "https://open.spotify.com/track/4ElpJov37xL3weU8XGekqt" },
+        { "id": "XST-005", "file": "cover-05-mutilator.jpg", "kind": "cover", "title": "Mutilator", "note": "ZMAJOR", "price": 30, "duration": 203, "streams": 812000, "spotifyId": "4CwoMdiqMey8yzewMWyLcj", "spotify": "https://open.spotify.com/track/4CwoMdiqMey8yzewMWyLcj" },
+        { "id": "XST-006", "file": "cover-06-confess-your-love-funk.jpg", "kind": "cover", "title": "Confess Your Love Funk", "note": "ZMAJOR × Prey", "price": 30, "duration": 194, "streams": 1940000, "spotifyId": "0B6ZJaS3I891FP8Ewx43Oh", "spotify": "https://open.spotify.com/track/0B6ZJaS3I891FP8Ewx43Oh" },
+        { "id": "XST-007", "file": "cover-07-poh-in-brazil.jpg", "kind": "cover", "title": "Poh In Brazil", "note": "APLCO", "price": 30, "duration": 158, "streams": 275000, "spotifyId": "4zGfqpfLxHfBdCcUoLj4kJ", "spotify": "https://open.spotify.com/track/4zGfqpfLxHfBdCcUoLj4kJ" },
+        { "id": "XST-008", "file": "cover-08-montagem-suco.jpg", "kind": "cover", "title": "Montagem Suco", "note": "APLCO × HXI × staplegun", "price": 30, "duration": 211, "streams": 4120000, "spotifyId": "0XkPVXagyJBwyK0pvWFc6O", "spotify": "https://open.spotify.com/track/0XkPVXagyJBwyK0pvWFc6O" },
+        { "id": "XST-009", "file": "cover-09-hworld.jpg", "kind": "cover", "title": "Hworld", "note": "Hwungii", "price": 30, "duration": 169, "streams": 398000, "spotify": "https://open.spotify.com/search/Hworld%20Hwungii" },
+        { "id": "XST-010", "file": "cover-10-montagem-interzone.jpg", "kind": "cover", "title": "Montagem Interzone", "note": "KREZUS", "price": 30, "duration": 226, "streams": 1560000, "spotifyId": "0ZMLekvXmuRsu2XYHU5IDz", "spotify": "https://open.spotify.com/track/0ZMLekvXmuRsu2XYHU5IDz" },
+        { "id": "XST-011", "file": "cover-11-agora-vem.jpg", "kind": "cover", "title": "Agora Vem", "note": "LXNGVX × RXVNG", "price": 30, "duration": 183, "streams": 2030000, "spotifyId": "69OdqYb2e9aj1F0SceCvUL", "spotify": "https://open.spotify.com/track/69OdqYb2e9aj1F0SceCvUL" },
+        { "id": "XST-012", "file": "cover-12-hypergnosis.jpg", "kind": "cover", "title": "Hypergnosis", "note": "MDR", "price": 30, "duration": 240, "streams": 690000, "spotifyId": "4E97eKi2lbPEChGlHc8Qid", "spotify": "https://open.spotify.com/track/4E97eKi2lbPEChGlHc8Qid" },
+        { "id": "XST-013", "file": "cover-13-dale-mucho.jpg", "kind": "cover", "title": "Dale Mucho", "note": "MDR × SUNJI", "price": 30, "duration": 176, "streams": 1275000, "spotifyId": "54IhCAOAQqImHGw6L6lEOg", "spotify": "https://open.spotify.com/track/54IhCAOAQqImHGw6L6lEOg" },
+        { "id": "XST-014", "file": "cover-14-la-no-bico.jpg", "kind": "cover", "title": "La No Bico", "note": "NXGHT", "price": 30, "duration": 161, "streams": 3860000, "spotifyId": "2F4XMamdOhdBElnOzdQFwS", "spotify": "https://open.spotify.com/track/2F4XMamdOhdBElnOzdQFwS" },
+        { "id": "XST-015", "file": "cover-15-montagem-bam-bam.jpg", "kind": "cover", "title": "Montagem Bam Bam", "note": "NXGHT", "price": 30, "duration": 197, "streams": 2410000, "spotifyId": "4iWCX4QVeYrn689Dp3XQgV", "spotify": "https://open.spotify.com/track/4iWCX4QVeYrn689Dp3XQgV" },
+        { "id": "XST-016", "file": "cover-16-montagem-dela.jpg", "kind": "cover", "title": "Montagem Dela", "note": "Polaris", "price": 30, "duration": 185, "streams": 505000, "spotify": "https://open.spotify.com/search/Montagem%20Dela%20Polaris" },
+        { "id": "XST-017", "file": "cover-17-montagem-decimator.jpg", "kind": "cover", "title": "Montagem Decimator", "note": "Polaris × DJ usof × AETHRA × GULIEN", "price": 30, "duration": 219, "streams": 1830000, "spotifyId": "1kzpWDPiPD63OfLPNQuqHz", "spotify": "https://open.spotify.com/track/1kzpWDPiPD63OfLPNQuqHz" },
+        { "id": "XST-018", "file": "cover-18-chama-viva.jpg", "kind": "cover", "title": "Chama Viva", "note": "SUNJI × NEOVERS", "price": 30, "duration": 174, "streams": 970000, "spotifyId": "5G2fcE5UP08ypghK0R5VWa", "spotify": "https://open.spotify.com/track/5G2fcE5UP08ypghK0R5VWa" },
+        { "id": "XST-019", "file": "cover-19-dinha.jpg", "kind": "cover", "title": "Dinha", "note": "XST", "price": 30, "duration": 152, "streams": 220000, "spotifyId": "787joYw3RBalYo1McZP7xq", "spotify": "https://open.spotify.com/track/787joYw3RBalYo1McZP7xq" },
+        { "id": "XST-020", "file": "cover-20-mama-mia.jpg", "kind": "cover", "title": "Mama Mia", "note": "Zime Media", "price": 30, "duration": 190, "streams": 1405000, "spotifyId": "6Dl9Q9SBBzMR6ajmFqq9uM", "spotify": "https://open.spotify.com/track/6Dl9Q9SBBzMR6ajmFqq9uM" },
+        { "id": "XST-021", "file": "cover-21-drippin-funk.jpg", "kind": "cover", "title": "Drippin Funk", "note": "ZMAJOR", "price": 30, "duration": 206, "streams": 2650000, "spotifyId": "0InhdsERdOOHgTM4jkNbGV", "spotify": "https://open.spotify.com/track/0InhdsERdOOHgTM4jkNbGV" }
       ]
     </script>
 
-    <!-- Placeholder roster — Calen sends the real names, photos, and credits later. -->
+    <!-- Empty on purpose: fake names on placehold.co boxes read as a lie on
+         a real portfolio, so carousel.js hides the whole #artists section
+         (and its nav link) while these arrays are empty. Fill them with
+         Calen's real names/photos/credits and the section un-hides itself
+         — no code changes needed. -->
     <script type="application/json" id="artistsData">
-      [
-        { "name": "MC Fenix", "role": "Recording artist · Funk carioca", "note": "3 cover drops, 2024–2025", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=MC+Fenix" },
-        { "name": "Bianca Rae", "role": "Vocalist · R&B", "note": "Single artwork + rollout banners", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Bianca+Rae" },
-        { "name": "DJ Vortex", "role": "Producer / DJ · Trap", "note": "EP cover + tour poster set", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=DJ+Vortex" },
-        { "name": "Kaio Blitz", "role": "Recording artist · Montagem", "note": "Ongoing cover series, 6 drops", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Kaio+Blitz" },
-        { "name": "Tropa do Chrome", "role": "Group · Funk", "note": "Full visual identity + logo", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Tropa" },
-        { "name": "Noa Prisma", "role": "Singer-songwriter · Pop", "note": "Album cover, 2025", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Noa+Prisma" },
-        { "name": "Rafa Ximétrica", "role": "Producer · Montagem", "note": "2 cover drops + Instagram banners", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Rafa+X" }
-      ]
+      []
     </script>
 
-    <!-- Placeholder label roster — Calen sends the real names later, same pattern as #artistsData. -->
+    <!-- Same as #artistsData — empty until Calen sends real label names. -->
     <script type="application/json" id="labelsData">
-      ["INTERTONE", "EPSILE", "SUNDAY", "SCARSCHEME", "RYLARIS", "POLARIS", "GRYND"]
+      []
     </script>
 
     <script>

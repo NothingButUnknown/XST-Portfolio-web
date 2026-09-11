@@ -2,10 +2,50 @@
 // Vanilla port of a React/shadcn component: same interactions (play/pause,
 // draggable progress + volume, like, context menu, hover glow), no React/
 // Tailwind/build step, because this site has none — see README for why.
-// Playback is a visual mock, same as the source component; the one real
-// action is "open in Spotify", which follows item.spotify from the catalogue.
+//
+// Playback: tracks with a resolved catalogue[i].spotifyId play for real,
+// through Spotify's own iFrame Playback API — a controller loaded into the
+// off-canvas #spotifyEmbedHost div (see index.html) that this card drives
+// with its own play/pause/seek buttons instead of showing Spotify's player
+// chrome. Tracks without a spotifyId have no audio to load; the card falls
+// back to the old visual-only mock so the UI still has something to show,
+// and "open in Spotify" (item.spotify) is the only real action for those.
 (function () {
   "use strict";
+
+  // ---- shared embed controller (one per page; cards come and go) ----
+  var EMBED = (window.__xstSpotifyEmbed = window.__xstSpotifyEmbed || {
+    controller: null,
+    ready: false,
+    pendingUri: null,
+    listeners: [],
+  });
+
+  if (!window.onSpotifyIframeApiReady) {
+    window.onSpotifyIframeApiReady = function (IFrameAPI) {
+      var host = document.getElementById("spotifyEmbedHost");
+      if (!host) return;
+      IFrameAPI.createController(
+        host,
+        // Bootstrap URI just needs to be a valid track so the controller
+        // initializes; the first real update() call swaps it via loadUri.
+        { uri: "spotify:track:1uxXUkZoFOG1ogg2oHcmUl", width: "300", height: "80" },
+        function (controller) {
+          EMBED.controller = controller;
+          EMBED.ready = true;
+          if (EMBED.pendingUri) {
+            controller.loadUri(EMBED.pendingUri);
+            EMBED.pendingUri = null;
+          }
+          controller.addListener("playback_update", function (event) {
+            EMBED.listeners.forEach(function (fn) {
+              fn(event.data);
+            });
+          });
+        }
+      );
+    };
+  }
 
   var ICONS = {
     chevronRight: '<path d="m9 18 6-6-6-6"/>',
@@ -161,8 +201,27 @@
       liked: false,
       draggingProgress: false,
       draggingVolume: false,
-      tickId: null,
+      hasAudio: false, // true when the current song has a real spotifyId
+      spotifyUri: null,
+      realDuration: 0, // seconds, from Spotify once it reports one
+      realPosition: 0, // seconds
     };
+
+    // Real playback drives this card's UI from Spotify's own event stream
+    // instead of the local fake-timer tick used for songs with no audio.
+    function onPlaybackUpdate(data) {
+      if (!state.hasAudio || data.playingURI !== state.spotifyUri) return;
+      if (state.draggingProgress) return;
+      state.isPlaying = !data.isPaused;
+      if (data.duration) {
+        state.realDuration = data.duration / 1000;
+        state.realPosition = data.position / 1000;
+        state.progress = clampPercent((state.realPosition / state.realDuration) * 100);
+      }
+      renderPlayState();
+      renderProgress();
+    }
+    EMBED.listeners.push(onPlaybackUpdate);
 
     function setHovered(on) {
       el.classList.toggle("is-hovered", on);
@@ -191,7 +250,10 @@
 
     function renderProgress() {
       progressFill.style.width = state.progress + "%";
-      if (state.song) {
+      if (!state.song) return;
+      if (state.hasAudio && state.realDuration) {
+        timeEl.textContent = formatTime(state.realPosition) + " / " + formatTime(state.realDuration);
+      } else {
         var current = (state.progress / 100) * state.song.duration;
         timeEl.textContent = formatTime(current) + " / " + formatTime(state.song.duration);
       }
@@ -202,35 +264,19 @@
       volumeTrack.querySelector(".sc-volume-knob").style.left = state.volume + "%";
     }
 
-    function stopTick() {
-      if (state.tickId) {
-        clearInterval(state.tickId);
-        state.tickId = null;
-      }
-    }
-
-    function startTick() {
-      stopTick();
-      if (!state.song) return;
-      var stepPerTick = 100 / (state.song.duration * 10); // 100ms tick
-      state.tickId = setInterval(function () {
-        if (state.draggingProgress) return;
-        state.progress = Math.min(100, state.progress + stepPerTick);
-        renderProgress();
-        if (state.progress >= 100) {
-          state.isPlaying = false;
-          stopTick();
-          renderPlayState();
-        }
-      }, 100);
-    }
-
     function togglePlay() {
-      state.isPlaying = !state.isPlaying;
-      if (state.progress >= 100) state.progress = 0;
-      renderPlayState();
-      if (state.isPlaying) startTick();
-      else stopTick();
+      if (state.hasAudio) {
+        // Real track: hand off to Spotify's controller and let the
+        // playback_update listener above bring our UI back in sync —
+        // it's the source of truth, not a local guess at play state.
+        if (EMBED.ready && EMBED.controller) EMBED.controller.togglePlay();
+        return;
+      }
+      // No resolved spotifyId — there is nothing here to actually play.
+      // Used to fake it with a silent timer + bouncing equalizer; that
+      // reads as broken (or a lie), not as "no preview yet". Send them to
+      // the real thing instead.
+      if (openLink.href) window.open(openLink.href, "_blank", "noopener");
     }
 
     playBtns.forEach(function (btn) {
@@ -246,18 +292,31 @@
       return pct;
     }
 
-    progressBar.addEventListener("mousedown", function (event) {
-      state.draggingProgress = true;
-      state.progress = seekFromEvent(event, progressBar);
+    function setDragProgress(pct) {
+      state.progress = pct;
+      if (state.hasAudio && state.realDuration) {
+        state.realPosition = (pct / 100) * state.realDuration;
+      }
       renderProgress();
+    }
+
+    progressBar.addEventListener("mousedown", function (event) {
+      if (!state.hasAudio) return; // nothing loaded to scrub
+      state.draggingProgress = true;
+      setDragProgress(seekFromEvent(event, progressBar));
       function onMove(e) {
-        state.progress = seekFromEvent(e, progressBar);
-        renderProgress();
+        setDragProgress(seekFromEvent(e, progressBar));
       }
       function onUp() {
         state.draggingProgress = false;
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
+        // Real track: commit the scrub to Spotify's actual playhead. The
+        // mock has nothing to seek — its fake tick just keeps counting up
+        // from wherever the bar was dropped.
+        if (state.hasAudio && EMBED.ready && EMBED.controller && state.realDuration) {
+          EMBED.controller.seek(state.realPosition);
+        }
       }
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
@@ -287,7 +346,7 @@
       [el.querySelector(".sc-like"), menu.querySelector(".sc-menu-like")].forEach(function (btn) {
         btn.classList.toggle("is-liked", on);
         var svg = btn.querySelector("svg");
-        svg.setAttribute("fill", on ? "#1ED760" : "none");
+        svg.setAttribute("fill", on ? "#ff2b1f" : "none");
       });
       menuLikeLabel.textContent = on ? "Remove from Liked" : "Add to Liked";
     }
@@ -343,7 +402,10 @@
       state.song = song;
       state.isPlaying = false;
       state.progress = 0;
-      stopTick();
+      state.hasAudio = !!song.spotifyId;
+      state.spotifyUri = state.hasAudio ? "spotify:track:" + song.spotifyId : null;
+      state.realDuration = 0;
+      state.realPosition = 0;
       renderPlayState();
       renderProgress();
       titleEl.textContent = song.title;
@@ -352,6 +414,23 @@
       artImg.alt = song.title + " cover art";
       openLink.href = song.spotify || "https://open.spotify.com/search/" + encodeURIComponent(song.title + " " + song.artist);
       closeMenu();
+
+      el.classList.toggle("no-preview", !state.hasAudio);
+      var previewLabel = state.hasAudio ? "Play preview" : "Preview not available — open in Spotify";
+      playBtns.forEach(function (btn) {
+        btn.setAttribute("aria-label", previewLabel);
+        btn.title = state.hasAudio ? "" : previewLabel;
+      });
+
+      if (state.hasAudio) {
+        if (EMBED.ready && EMBED.controller) {
+          EMBED.controller.loadUri(state.spotifyUri);
+        } else {
+          // API script hasn't called back yet — onSpotifyIframeApiReady
+          // loads this as soon as the controller exists.
+          EMBED.pendingUri = state.spotifyUri;
+        }
+      }
     }
 
     renderVolume();
@@ -359,7 +438,8 @@
     return {
       update: update,
       destroy: function () {
-        stopTick();
+        var i = EMBED.listeners.indexOf(onPlaybackUpdate);
+        if (i !== -1) EMBED.listeners.splice(i, 1);
       },
     };
   }

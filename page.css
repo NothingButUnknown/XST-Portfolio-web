@@ -1,5 +1,5 @@
 /* ============================================================
-   page.css — page rhythm: sticky nav, hero, hub, work header,
+   page.css — page rhythm: sticky nav, hero, work header,
    contact footer container. Component internals (sphere, cursor,
    lightbox, .work-* footer content, artist carousel) live in
    styles.css / carousel.css — not here.
@@ -101,7 +101,8 @@
 
 .hero.section {
   position: relative;
-  padding-top: calc(clamp(6rem, 12vh, 9rem) + clamp(2rem, 6vh, 5rem));
+  padding-top: clamp(6rem, 12vh, 9rem);
+  padding-bottom: clamp(3rem, 6vh, 4.5rem);
   overflow: hidden;
 }
 
@@ -138,62 +139,135 @@
   margin-top: 1.25rem;
 }
 
-.hero-copy + .hero-copy {
-  margin-top: 1rem;
+/* ---------- impact panel (the receipts) + XST/Instagram signature ---------- */
+
+.impact-inner {
+  position: relative;
+  z-index: 1;
+  margin-top: clamp(3rem, 7vh, 4.5rem);
 }
 
-/* ---------- hub ---------- */
-
-.hub.section {
-  padding: clamp(4rem, 9vh, 6rem) 0;
+.impact-panel {
+  display: flex;
+  align-items: stretch;
+  gap: clamp(2rem, 5vw, 3.5rem);
+  padding: clamp(1.75rem, 3vw, 2.5rem) clamp(1.75rem, 4vw, 3rem);
+  background: linear-gradient(155deg, var(--panel-raised), var(--panel) 70%);
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(220, 221, 225, 0.06) inset, 0 24px 48px -28px rgba(0, 0, 0, 0.85);
 }
 
-.hub-inner {
+.impact-lead {
+  flex: 0 0 auto;
+  width: clamp(220px, 26vw, 300px);
+}
+
+.impact-total {
+  font-weight: 900;
+  font-stretch: 125%;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--chrome);
+  margin-top: 0.6rem;
+}
+
+.impact-total span {
+  color: var(--xst-red);
+}
+
+.impact-caption {
+  margin-top: 0.6rem;
+  max-width: 26ch;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--chrome-dim);
+}
+
+.impact-stats {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1.25rem, 2.5vw, 2rem);
+  border-left: 1px solid var(--hairline);
+  padding-left: clamp(2rem, 5vw, 3.5rem);
+}
+
+.impact-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  justify-content: center;
+}
+
+.impact-stat-value {
+  font-weight: 900;
+  font-stretch: 125%;
+  font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+  letter-spacing: -0.02em;
+  color: var(--chrome);
+}
+
+.impact-stat-label {
+  font-weight: 600;
+  font-stretch: 112.5%;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--chrome-dim);
+}
+
+/* This is the one ask of the whole hero module now that the hero has no
+   CTA of its own — sized and centered to carry that weight on its own. */
+.impact-signature {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 1.5rem;
+  margin-top: clamp(3.5rem, 8vh, 5.5rem);
   text-align: center;
-  gap: 1.75rem;
 }
 
-.hub-logo {
-  width: clamp(90px, 12vw, 150px);
+.impact-logo {
+  width: clamp(120px, 15vw, 190px);
   height: auto;
 }
 
-.hub-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--panel-raised);
-  border: 1px solid var(--hairline-strong);
-  color: var(--chrome);
-  font-weight: 600;
-  font-stretch: 112.5%;
-  font-size: 0.85rem;
-  letter-spacing: 0.04em;
-  padding: 0.85rem 2.25rem;
-  border-radius: 10px;
-  box-shadow: 0 1px 0 rgba(220, 221, 225, 0.06) inset, 0 14px 30px -16px rgba(0, 0, 0, 0.8);
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease,
-    transform 0.2s var(--ease), box-shadow 0.2s ease;
+.impact-ig {
+  font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+  padding: 1.05rem 2.5rem;
 }
 
-.hub-link:hover {
-  background: var(--xst-red);
-  border-color: var(--xst-red);
-  color: #fff;
-  transform: translateY(-1px);
-  box-shadow: 0 0 0 1px rgba(224, 27, 27, 0.4), 0 18px 36px -14px rgba(224, 27, 27, 0.65);
+@media (max-width: 900px) {
+  .impact-panel {
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  .impact-lead {
+    width: 100%;
+  }
+
+  .impact-stats {
+    border-left: none;
+    border-top: 1px solid var(--hairline);
+    padding-left: 0;
+    padding-top: 1.75rem;
+  }
 }
 
-.hub-link:active {
-  transform: translateY(-1px) scale(0.97);
+@media (max-width: 560px) {
+  .impact-stats {
+    grid-template-columns: 1fr;
+    gap: 1.1rem;
+  }
 }
 
 /* ---------- work section header ---------- */
 
 .work.section {
+  padding-top: 0;
   padding-bottom: clamp(3rem, 6vh, 4.5rem);
 }
 
@@ -231,7 +305,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .site-nav-links a::after,
-  .hub-link {
+  .button-primary {
     transition: none;
   }
 

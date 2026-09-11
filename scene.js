@@ -11,6 +11,35 @@ const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 
 const catalogue = JSON.parse(document.querySelector("#catalogue").textContent);
 
+// ---------- stream counts (hero total + per-cover, both derived from
+// catalogue[i].streams — never hand-typed, so they can't go stale when
+// Calen adds a cover) ----------
+
+function formatStreams(n) {
+  if (!n) return "";
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 1000) return `${Math.round(n / 1000)}K`;
+  return String(n);
+}
+
+const impactTotal = document.querySelector("#impactTotal");
+if (impactTotal) {
+  const totalStreams = catalogue.reduce((sum, item) => sum + (item.streams || 0), 0);
+  const bestCover = catalogue.reduce(
+    (best, item) => ((item.streams || 0) > (best.streams || 0) ? item : best),
+    catalogue[0]
+  );
+  const avgStreams = catalogue.length ? Math.round(totalStreams / catalogue.length) : 0;
+
+  impactTotal.innerHTML = `${formatStreams(totalStreams)}<span>+</span>`;
+  document.querySelector("#impactCovers").textContent = String(catalogue.length);
+  document.querySelector("#impactBest").textContent = formatStreams(bestCover.streams || 0);
+  document.querySelector("#impactBestLabel").textContent = bestCover.title
+    ? `Best-performing cover · ${bestCover.title}`
+    : "Best-performing cover";
+  document.querySelector("#impactAvg").textContent = formatStreams(avgStreams);
+}
+
 // ---------- dominant-color sampling (drives the per-cover glow) ----------
 
 const FALLBACK_GLOW = "224, 27, 27";
@@ -686,7 +715,8 @@ function openDetail(index) {
 
   const probe = new Image();
   probe.onload = () => {
-    detailSpecs.textContent = `${probe.naturalWidth} × ${probe.naturalHeight} · JPG`;
+    const streamsPart = item.streams ? ` · ${formatStreams(item.streams)} streams` : "";
+    detailSpecs.textContent = `${probe.naturalWidth} × ${probe.naturalHeight} · JPG${streamsPart}`;
   };
   probe.src = src;
 
@@ -696,6 +726,7 @@ function openDetail(index) {
     duration: item.duration || 180,
     albumArt: src,
     spotify: item.spotify || "",
+    spotifyId: item.spotifyId || "",
   });
 
   thumbs.forEach((thumb, i) => thumb.classList.toggle("is-active", i === index));
