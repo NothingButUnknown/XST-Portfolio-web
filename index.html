@@ -68,8 +68,8 @@
         var ctx = canvas.getContext("2d");
         var W = canvas.width;
         var H = canvas.height;
-        var DUR = 700; // depixelate animation length, ms — fast on purpose
-        var MAX_COLS = 14; // coarsest mosaic: logo reads as a handful of blocks
+        var DUR = 1700; // depixelate animation length, ms
+        var MAX_COLS = 7; // coarsest mosaic: logo reads as a handful of blocks
         var MIN_COLS = W; // finest mosaic: native canvas resolution
 
         var mosaic = document.createElement("canvas");
@@ -79,11 +79,16 @@
         var done = false;
 
         function ease(t) {
-          return 1 - Math.pow(1 - t, 3); // ease-out cubic
+          return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // ease-in-out cubic — steady, visible block count change across the whole run
         }
 
-        function draw(cols) {
-          cols = Math.max(1, Math.round(cols));
+        // Hard-edged mosaic: downsample the source into a tiny canvas
+        // (smoothing on, so each block is a true average of that patch),
+        // then blit it back up with smoothing off so the blocks stay crisp
+        // squares instead of blurring together — that crisp edge is what
+        // reads as "pixelated" rather than "out of focus".
+        function draw(t) {
+          var cols = Math.max(1, Math.round(MAX_COLS + (MIN_COLS - MAX_COLS) * t));
           var rows = Math.max(1, Math.round(cols * (H / W)));
           mosaic.width = cols;
           mosaic.height = rows;
@@ -98,21 +103,21 @@
         function finish() {
           if (done) return;
           done = true;
-          draw(MIN_COLS);
+          draw(1);
           try {
             sessionStorage.setItem("xstBooted", "1");
           } catch (e) {}
           loader.classList.add("is-done");
           setTimeout(function () {
             loader.remove();
-          }, 420);
+          }, 520); // matches the CSS exit transition (opacity + zoom-out)
         }
 
         function frame(ts) {
           if (done) return;
           if (!start) start = ts;
           var t = Math.min(1, (ts - start) / DUR);
-          draw(MAX_COLS + (MIN_COLS - MAX_COLS) * ease(t));
+          draw(ease(t));
           if (t < 1) {
             requestAnimationFrame(frame);
           } else {
@@ -121,14 +126,14 @@
         }
 
         img.onload = function () {
-          draw(MAX_COLS);
+          draw(0);
           requestAnimationFrame(frame);
         };
         img.onerror = finish; // broken asset never blocks the site
         img.src = "assets/xst-mark-loader.png";
 
         // Safety cap: never leave the loader up if something stalls.
-        setTimeout(finish, 2000);
+        setTimeout(finish, 3200);
       })();
     </script>
 
@@ -152,8 +157,8 @@
              (see scene.js) — never hand-typed, so it can't go stale. The
              figures themselves are still PLACEHOLDERS until Calen sends
              real per-track stream counts (see the comment on #catalogue). -->
-        <div class="container impact-inner" data-intro="3">
-          <div class="impact-panel">
+        <div class="container impact-inner">
+          <div class="impact-panel" data-intro="4">
             <div class="impact-lead">
               <p class="section-eyebrow">Catalog impact</p>
               <p class="impact-total" id="impactTotal">—</p>
@@ -174,7 +179,7 @@
               </div>
             </div>
           </div>
-          <div class="impact-signature">
+          <div class="impact-signature" data-intro="5">
             <img class="impact-logo" src="assets/xst-logo.png" alt="XST" />
             <a class="button-primary impact-ig" href="https://www.instagram.com/xst.graphic" target="_blank" rel="noreferrer">
               See the receipts on Instagram

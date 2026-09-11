@@ -80,6 +80,115 @@
     return Math.max(0, Math.min(100, n));
   }
 
+  // ---- persistent floating mini-player ----
+  // The full card only exists inside the detail overlay, so closing that
+  // overlay used to make a playing track vanish from view entirely — audio
+  // kept going through the invisible embed host with nothing on screen to
+  // show or control it. This is the visible, playback-only substitute: a
+  // small pill fixed to the viewport (so it actually follows the screen
+  // instead of living in an invisible corner box), shown only while a
+  // track is playing and the full card isn't already on screen.
+  var MINI = null;
+
+  function isDetailOverlayOpen() {
+    var overlay = document.getElementById("detailOverlay");
+    return !!overlay && overlay.classList.contains("is-open");
+  }
+
+  function ensureMiniPlayer() {
+    if (MINI) return MINI;
+
+    var el = document.createElement("div");
+    el.className = "sc-mini";
+    el.setAttribute("role", "button");
+    el.tabIndex = 0;
+    el.setAttribute("aria-label", "Now playing — reopen");
+    el.innerHTML =
+      '<button type="button" class="sc-mini-play" aria-label="Pause">' +
+      icon("play", ' class="sc-mini-icon-play" style="display:none"') +
+      icon("pause", ' class="sc-mini-icon-pause"') +
+      "</button>" +
+      '<img class="sc-mini-art" src="" alt="" />' +
+      '<div class="sc-mini-meta">' +
+      '  <div class="sc-mini-title"></div>' +
+      '  <div class="sc-mini-artist"></div>' +
+      "</div>" +
+      '<div class="sc-mini-progress"><div class="sc-mini-progress-fill"></div></div>';
+    document.body.appendChild(el);
+
+    var artImg = el.querySelector(".sc-mini-art");
+    var titleEl = el.querySelector(".sc-mini-title");
+    var artistEl = el.querySelector(".sc-mini-artist");
+    var fill = el.querySelector(".sc-mini-progress-fill");
+    var playBtn = el.querySelector(".sc-mini-play");
+    var playIcon = el.querySelector(".sc-mini-icon-play");
+    var pauseIcon = el.querySelector(".sc-mini-icon-pause");
+
+    function updateVisibility() {
+      var show = !!EMBED.isPlaying && !isDetailOverlayOpen();
+      el.classList.toggle("is-visible", show);
+    }
+
+    function expand() {
+      if (typeof EMBED.reopenDetail === "function") EMBED.reopenDetail();
+    }
+
+    playBtn.addEventListener("click", function (event) {
+      event.stopPropagation();
+      if (EMBED.ready && EMBED.controller) EMBED.controller.togglePlay();
+    });
+    el.addEventListener("click", expand);
+    el.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        expand();
+      }
+    });
+
+    // The overlay opening/closing is the other trigger for hiding or
+    // revealing this — not just play state — so watch it directly instead
+    // of threading overlay events through every card instance.
+    var overlayNode = document.getElementById("detailOverlay");
+    if (overlayNode) {
+      new MutationObserver(updateVisibility).observe(overlayNode, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+    }
+
+    MINI = {
+      setTrack: function (song) {
+        artImg.src = song.albumArt;
+        artImg.alt = song.title + " cover art";
+        titleEl.textContent = song.title;
+        artistEl.textContent = song.artist;
+      },
+      setPlaying: function (isPlaying) {
+        EMBED.isPlaying = isPlaying;
+        playIcon.style.display = isPlaying ? "none" : "";
+        pauseIcon.style.display = isPlaying ? "" : "none";
+        playBtn.setAttribute("aria-label", isPlaying ? "Pause" : "Play");
+        updateVisibility();
+      },
+      setProgress: function (pct) {
+        fill.style.width = pct + "%";
+      },
+    };
+
+    return MINI;
+  }
+
+  // One listener for the whole page (not per-card) keeps the mini-player in
+  // sync with whichever track is actually loaded in the shared controller.
+  EMBED.listeners.push(function (data) {
+    if (!EMBED.nowPlayingUri || data.playingURI !== EMBED.nowPlayingUri) return;
+    var mini = ensureMiniPlayer();
+    mini.setPlaying(!data.isPaused);
+    if (data.duration) {
+      mini.setProgress(clampPercent((data.position / data.duration) * 100));
+    }
+  });
+
   function create(container, handlers) {
     handlers = handlers || {};
 
@@ -423,6 +532,9 @@
       });
 
       if (state.hasAudio) {
+        EMBED.nowPlayingUri = state.spotifyUri;
+        EMBED.isPlaying = false; // reset until the next playback_update confirms it
+        ensureMiniPlayer().setTrack(song);
         if (EMBED.ready && EMBED.controller) {
           EMBED.controller.loadUri(state.spotifyUri);
         } else {

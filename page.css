@@ -55,10 +55,10 @@
   height: 3.6rem;
   margin: 0.85rem auto 0;
   padding: 0 1.4rem;
-  background: linear-gradient(180deg, rgba(19, 19, 21, 0.92), rgba(8, 8, 9, 0.88));
+  background: linear-gradient(180deg, rgba(19, 19, 21, 0.55), rgba(8, 8, 9, 0.45));
   border-color: var(--hairline-strong);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
   box-shadow: 0 20px 44px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -369,7 +369,7 @@
 
 :root {
   --intro-dur: 0.5s;
-  --intro-step: 60ms;
+  --intro-step: 50ms;
 }
 
 .is-loading .page {
@@ -397,6 +397,8 @@
 .is-ready [data-intro="1"] { --intro-i: 1; }
 .is-ready [data-intro="2"] { --intro-i: 2; }
 .is-ready [data-intro="3"] { --intro-i: 3; }
+.is-ready [data-intro="4"] { --intro-i: 4; }
+.is-ready [data-intro="5"] { --intro-i: 5; }
 
 /* ============================================================
    first-load screen — the XST mark resolving out of a coarse
@@ -437,14 +439,27 @@
   width: min(46vw, 300px);
   height: auto;
   aspect-ratio: 480 / 275;
+  image-rendering: pixelated;
+  transition: transform 0.5s var(--ease);
 }
 
+/* Exit: the mark pulls back into the distance (zoom out) while the black
+   screen behind it fades away at the same time, revealing .page — which
+   is already fading its own [data-intro] segments up underneath. */
 .loader.is-done {
   opacity: 0;
 }
 
+.loader.is-done .loader-mark {
+  transform: scale(0.82);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .is-first-load .loader {
+    transition: none;
+  }
+
+  .loader-mark {
     transition: none;
   }
 }

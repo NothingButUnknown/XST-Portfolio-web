@@ -651,6 +651,14 @@ const spotifyCard = detailSide && window.XSTSpotifyCard
     })
   : null;
 
+// Lets the floating mini-player (spotify-card.js) reopen the cover whose
+// track is still playing after the detail overlay was closed.
+if (window.__xstSpotifyEmbed) {
+  window.__xstSpotifyEmbed.reopenDetail = () => {
+    if (currentDetailIndex >= 0) openDetail(currentDetailIndex);
+  };
+}
+
 let lastFocusedNode = null;
 
 const thumbs = catalogue.map((item, index) => {
