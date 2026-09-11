@@ -403,8 +403,15 @@ sceneVisibilityObserver.observe(scene);
 
 // ---------- pointer interaction ----------
 
+// Drag only starts when the press actually lands on the sphere's own hit-box
+// (.scene-inner, CSS touch-action: none). .scene itself is much taller than
+// the sphere (room for the connecting-web canvas + layout breathing room),
+// and stays touch-action: pan-y — so a touch that lands in that surrounding
+// space (not on the globe) falls through here and scrolls the page normally
+// instead of being grabbed.
 scene.addEventListener("pointerdown", (event) => {
   if (event.button !== 0) return;
+  if (!event.target.closest("#sceneInner")) return;
   isDragging = true;
   dragMoved = 0;
   startX = event.clientX;
@@ -419,6 +426,11 @@ scene.addEventListener("pointerdown", (event) => {
   scene.setPointerCapture(event.pointerId);
 });
 
+// Touch fingers cover less screen distance per gesture than a mouse does, so
+// the same degrees-per-pixel factor that feels right with a mouse reads as
+// sluggish on a phone. Scale it up for coarse (touch) pointers only.
+const dragSensitivity = isCoarsePointer ? 1.6 : 1;
+
 scene.addEventListener("pointermove", (event) => {
   if (!isDragging) return;
   const dragX = event.clientX - startX;
@@ -427,10 +439,10 @@ scene.addEventListener("pointermove", (event) => {
   const frameY = event.clientY - lastY;
 
   dragMoved = Math.max(dragMoved, Math.hypot(dragX, dragY));
-  targetRotationY = startRotationY + dragX * 0.24;
-  targetRotationX = startRotationX + dragY * 0.2;
-  velocityY = frameX * 0.24;
-  velocityX = frameY * 0.2;
+  targetRotationY = startRotationY + dragX * 0.24 * dragSensitivity;
+  targetRotationX = startRotationX + dragY * 0.2 * dragSensitivity;
+  velocityY = frameX * 0.24 * dragSensitivity;
+  velocityX = frameY * 0.2 * dragSensitivity;
   lastX = event.clientX;
   lastY = event.clientY;
 });
@@ -767,6 +779,16 @@ document.addEventListener("keydown", (event) => {
 // Sticky nav's links are plain #hash anchors — the browser does the
 // scrolling. The only JS job left is marking which section is current as
 // the page scrolls past it.
+
+const siteNav = document.querySelector("#siteNav");
+if (siteNav) {
+  const NAV_SCROLL_THRESHOLD = 24;
+  const updateNavScrollState = () => {
+    siteNav.classList.toggle("is-scrolled", window.scrollY > NAV_SCROLL_THRESHOLD);
+  };
+  updateNavScrollState();
+  window.addEventListener("scroll", updateNavScrollState, { passive: true });
+}
 
 const navLinks = [...document.querySelectorAll(".site-nav a[href^='#']")];
 const navSections = navLinks

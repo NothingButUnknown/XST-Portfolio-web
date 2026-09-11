@@ -68,6 +68,12 @@
   -webkit-text-stroke: 1px var(--hairline-strong);
   white-space: nowrap;
   user-select: none;
+  transition: color 0.25s ease, -webkit-text-stroke-color 0.25s ease;
+}
+
+.ticker-item:hover {
+  color: var(--chrome);
+  -webkit-text-stroke-color: var(--chrome);
 }
 
 /* ---------- artist stage: flat row, no bordered panel ---------- */

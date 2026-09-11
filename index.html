@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>XST — graphic design</title>
+    <title>XST</title>
     <meta
       name="description"
       content="XST. Cover art, banners, logos, and posters. Drag the sphere, browse the portfolio, commission your own."
     />
+    <link rel="icon" type="image/png" href="assets/xst-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -18,11 +19,32 @@
     <link rel="stylesheet" href="page.css" />
     <link rel="stylesheet" href="carousel.css" />
     <link rel="stylesheet" href="spotify-card.css" />
+    <link rel="preload" as="image" href="assets/xst-mark-loader.png" />
     <script>
-      document.documentElement.classList.add("is-loading");
+      (function () {
+        var root = document.documentElement;
+        root.classList.add("is-loading");
+        // First tab load this session gets the full-screen depixelating
+        // mark; a refresh or an in-session return does not — sessionStorage
+        // is the only reliable "have they already seen it" signal without
+        // a server round-trip.
+        try {
+          if (!sessionStorage.getItem("xstBooted")) {
+            root.classList.add("is-first-load");
+          }
+        } catch (e) {
+          // Storage blocked (private mode, etc.) — skip the loader rather
+          // than risk it never being marked seen.
+        }
+      })();
     </script>
   </head>
   <body>
+    <div class="loader" id="loader" aria-hidden="true">
+      <canvas class="loader-mark" id="loaderMark" width="480" height="275"></canvas>
+    </div>
+
+    <div class="page">
     <header class="site-nav" id="siteNav" data-intro="1">
       <div class="site-nav-inner">
         <a class="wordmark" href="#top"><img src="assets/xst-logo.png" alt="XST" /></a>
@@ -33,6 +55,82 @@
         </nav>
       </div>
     </header>
+
+    <script>
+      (function () {
+        var root = document.documentElement;
+        if (!root.classList.contains("is-first-load")) return;
+
+        var loader = document.getElementById("loader");
+        var canvas = document.getElementById("loaderMark");
+        if (!loader || !canvas) return;
+
+        var ctx = canvas.getContext("2d");
+        var W = canvas.width;
+        var H = canvas.height;
+        var DUR = 700; // depixelate animation length, ms — fast on purpose
+        var MAX_COLS = 14; // coarsest mosaic: logo reads as a handful of blocks
+        var MIN_COLS = W; // finest mosaic: native canvas resolution
+
+        var mosaic = document.createElement("canvas");
+        var mctx = mosaic.getContext("2d");
+        var img = new Image();
+        var start = null;
+        var done = false;
+
+        function ease(t) {
+          return 1 - Math.pow(1 - t, 3); // ease-out cubic
+        }
+
+        function draw(cols) {
+          cols = Math.max(1, Math.round(cols));
+          var rows = Math.max(1, Math.round(cols * (H / W)));
+          mosaic.width = cols;
+          mosaic.height = rows;
+          mctx.imageSmoothingEnabled = true;
+          mctx.clearRect(0, 0, cols, rows);
+          mctx.drawImage(img, 0, 0, cols, rows);
+          ctx.imageSmoothingEnabled = false;
+          ctx.clearRect(0, 0, W, H);
+          ctx.drawImage(mosaic, 0, 0, cols, rows, 0, 0, W, H);
+        }
+
+        function finish() {
+          if (done) return;
+          done = true;
+          draw(MIN_COLS);
+          try {
+            sessionStorage.setItem("xstBooted", "1");
+          } catch (e) {}
+          loader.classList.add("is-done");
+          setTimeout(function () {
+            loader.remove();
+          }, 420);
+        }
+
+        function frame(ts) {
+          if (done) return;
+          if (!start) start = ts;
+          var t = Math.min(1, (ts - start) / DUR);
+          draw(MAX_COLS + (MIN_COLS - MAX_COLS) * ease(t));
+          if (t < 1) {
+            requestAnimationFrame(frame);
+          } else {
+            finish();
+          }
+        }
+
+        img.onload = function () {
+          draw(MAX_COLS);
+          requestAnimationFrame(frame);
+        };
+        img.onerror = finish; // broken asset never blocks the site
+        img.src = "assets/xst-mark-loader.png";
+
+        // Safety cap: never leave the loader up if something stalls.
+        setTimeout(finish, 2000);
+      })();
+    </script>
 
     <div class="cursor-dot" id="cursorDot" aria-hidden="true">
       <span class="cursor-label">Drag</span>
@@ -185,6 +283,7 @@
          catalogue have nothing to load here, so the card falls back to
          "open in Spotify" for those. -->
     <div id="spotifyEmbedHost" class="spotify-embed-host" aria-hidden="true"></div>
+    </div><!-- /.page -->
     <script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 
     <!-- "duration" (seconds) is a placeholder estimate until Calen sends the
@@ -224,18 +323,27 @@
       ]
     </script>
 
-    <!-- Empty on purpose: fake names on placehold.co boxes read as a lie on
-         a real portfolio, so carousel.js hides the whole #artists section
-         (and its nav link) while these arrays are empty. Fill them with
-         Calen's real names/photos/credits and the section un-hides itself
-         — no code changes needed. -->
+    <!-- PLACEHOLDER roster — Calen sends the real names, photos, and credits
+         later. Swap every "name"/"role"/"note"/"img" below for the real
+         thing before this site goes public; a fabricated roster reads as a
+         lie on a real portfolio. -->
     <script type="application/json" id="artistsData">
-      []
+      [
+        { "name": "MC Fenix", "role": "Recording artist · Funk carioca", "note": "3 cover drops, 2024–2025", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=MC+Fenix" },
+        { "name": "Bianca Rae", "role": "Vocalist · R&B", "note": "Single artwork + rollout banners", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Bianca+Rae" },
+        { "name": "DJ Vortex", "role": "Producer / DJ · Trap", "note": "EP cover + tour poster set", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=DJ+Vortex" },
+        { "name": "Kaio Blitz", "role": "Recording artist · Montagem", "note": "Ongoing cover series, 6 drops", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Kaio+Blitz" },
+        { "name": "Tropa do Chrome", "role": "Group · Funk", "note": "Full visual identity + logo", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Tropa" },
+        { "name": "Noa Prisma", "role": "Singer-songwriter · Pop", "note": "Album cover, 2025", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Noa+Prisma" },
+        { "name": "Rafa Ximétrica", "role": "Producer · Montagem", "note": "2 cover drops + Instagram banners", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Rafa+X" }
+      ]
     </script>
 
-    <!-- Same as #artistsData — empty until Calen sends real label names. -->
+    <!-- PLACEHOLDER labels — same deal as #artistsData above. -->
     <script type="application/json" id="labelsData">
-      []
+      [
+        "Intertone", "Epsile", "Sunday", "ScarScheme", "Rylaris", "Polaris", "GRYND", "Punisher", "Enarma", "Citadel"
+      ]
     </script>
 
     <script>

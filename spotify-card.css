@@ -4,16 +4,23 @@
    action) but every accent, glow, and control matches the rest of the site
    instead of clashing with it. */
 
-/* Off-canvas host for the real Spotify iframe controller (spotify-card.js).
-   Kept in normal flow and merely shifted off-screen — display:none or
-   visibility:hidden both suspend the embed's audio in most browsers. */
+/* Host for the real Spotify iframe controller (spotify-card.js). display:none
+   or visibility:hidden both suspend the embed's audio in most browsers, so
+   this stays visible-ish instead — but it must stay INSIDE the viewport.
+   Shoving it off-screen (old: left:-9999px/top:-9999px) makes Spotify's own
+   iframe think it has scrolled out of view, so it spawns its own floating
+   mini-player pinned to the viewport corner to keep controls reachable —
+   that's the stray box that sat at the bottom-left and never scrolled with
+   the page. Zero-opacity but on-screen avoids triggering that fallback. */
 .spotify-embed-host {
   position: fixed;
   width: 300px;
   height: 80px;
-  left: -9999px;
-  top: -9999px;
+  left: 0;
+  bottom: 0;
+  opacity: 0;
   pointer-events: none;
+  z-index: -1;
 }
 
 .spotify-card {

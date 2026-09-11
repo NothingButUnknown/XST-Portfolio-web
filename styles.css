@@ -81,8 +81,9 @@ a {
   perspective: 1400px;
   cursor: grab;
   outline: none;
-  /* Horizontal drag still spins the sphere; a vertical swipe is left for the
-     browser to scroll the page with, instead of being trapped in here. */
+  /* Full box stays pan-y (page scrolls normally) — only the sphere's own
+     hit-box (.scene-inner) below claims touch, so scrolling anywhere in this
+     tall wrapper but outside the visible globe is untouched. */
   touch-action: pan-y;
 }
 
@@ -109,6 +110,12 @@ a {
   z-index: 1;
   width: var(--sphere);
   height: var(--sphere);
+  /* This box IS the invisible hit-region — sized to the sphere itself, no
+     bigger. touch-action: none here overrides the wrapper's pan-y, so a
+     vertical drag that starts on the globe rotates it instead of scrolling
+     the page. A drag starting anywhere else in .scene (above/below the
+     sphere) still scrolls normally, since that touch-action isn't set there. */
+  touch-action: none;
 }
 
 .cover-node {

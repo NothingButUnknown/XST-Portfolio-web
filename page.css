@@ -20,13 +20,13 @@
 /* ---------- sticky nav ---------- */
 
 .site-nav {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 20;
-  background: rgba(6, 6, 6, 0.72);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--hairline);
+  background: transparent;
+  pointer-events: none;
 }
 
 .site-nav-inner {
@@ -37,6 +37,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  pointer-events: auto;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  box-shadow: none;
+  transition: max-width var(--dur) var(--ease), height var(--dur) var(--ease),
+    margin var(--dur) var(--ease), padding var(--dur) var(--ease),
+    background var(--dur) var(--ease), border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
+}
+
+/* Bar has no background of its own at rest — it reads the page behind it.
+   Past a small scroll depth it contracts into a floating pill widget. */
+.site-nav.is-scrolled .site-nav-inner {
+  max-width: 640px;
+  height: 3.6rem;
+  margin: 0.85rem auto 0;
+  padding: 0 1.4rem;
+  background: linear-gradient(180deg, rgba(19, 19, 21, 0.92), rgba(8, 8, 9, 0.88));
+  border-color: var(--hairline-strong);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-nav-inner {
+    transition: none;
+  }
 }
 
 .site-nav-links {
@@ -86,6 +115,13 @@
   .site-nav-inner {
     padding: 0 1.25rem;
     height: 4rem;
+  }
+
+  .site-nav.is-scrolled .site-nav-inner {
+    max-width: calc(100% - 1.5rem);
+    height: 3.3rem;
+    margin: 0.6rem auto 0;
+    padding: 0 1rem;
   }
 
   .site-nav-links {
@@ -310,22 +346,24 @@
   }
 
   /* Intro: show instantly, no fade, no travel. */
-  .is-loading body,
+  .is-loading .page,
   .is-loading [data-intro] {
     opacity: 1;
     transform: none;
   }
 
-  .is-ready body,
+  .is-ready .page,
   .is-ready [data-intro] {
     transition: none;
   }
 }
 
 /* ============================================================
-   page-load intro — one orchestrated fade on refresh.
+   page-load intro — one orchestrated fade of .page, every load.
    Armed by the inline <head> script (html.is-loading), released
-   by the inline script before scene.js (html.is-ready).
+   by the inline script before scene.js (html.is-ready). Runs
+   underneath the first-load .loader (below) when that's present,
+   so the two never visibly race.
    No-JS never gets .is-loading, so the page renders normally.
    ============================================================ */
 
@@ -334,11 +372,11 @@
   --intro-step: 60ms;
 }
 
-.is-loading body {
+.is-loading .page {
   opacity: 0;
 }
 
-.is-ready body {
+.is-ready .page {
   opacity: 1;
   transition: opacity var(--intro-dur) var(--ease);
 }
@@ -359,3 +397,54 @@
 .is-ready [data-intro="1"] { --intro-i: 1; }
 .is-ready [data-intro="2"] { --intro-i: 2; }
 .is-ready [data-intro="3"] { --intro-i: 3; }
+
+/* ============================================================
+   first-load screen — the XST mark resolving out of a coarse
+   pixel mosaic. Only exists in the DOM's first paint when
+   html.is-first-load was set by the inline head script (i.e. the
+   first tab load this session); a refresh never sees it.
+   ============================================================ */
+
+.loader {
+  display: none;
+}
+
+.is-first-load .loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--void);
+  opacity: 1;
+  transition: opacity 0.4s var(--ease);
+}
+
+.loader::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(224, 27, 27, 0.16),
+    transparent 60%
+  );
+}
+
+.loader-mark {
+  position: relative;
+  width: min(46vw, 300px);
+  height: auto;
+  aspect-ratio: 480 / 275;
+}
+
+.loader.is-done {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-first-load .loader {
+    transition: none;
+  }
+}
