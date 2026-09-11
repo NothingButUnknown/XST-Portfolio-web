@@ -439,6 +439,22 @@ a {
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: filter 0.35s var(--ease);
+}
+
+/* Opening a cover paints the already-cached thumb first (blurred) while the
+   full-size loads in the background, then sharpens once it's swapped in —
+   see setDetailImage() in scene.js. Keeps the overlay from ever showing the
+   *previous* cover's artwork under the new title while the full image is
+   still downloading. */
+#detailImg.is-provisional {
+  filter: blur(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-art img {
+    transition: none;
+  }
 }
 
 .detail-info {

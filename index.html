@@ -20,7 +20,11 @@
     <link rel="stylesheet" href="carousel.css" />
     <link rel="stylesheet" href="spotify-card.css" />
     <link rel="preload" as="image" href="assets/xst-mark-loader.png" />
-    <link rel="preload" as="image" href="assets/hero-art.webp" fetchpriority="high" />
+    <!-- page.css swaps to hero-art-1200.webp at <=700px — preload whichever
+         one will actually paint, or phones download a file they never show
+         while the file they do show arrives with no priority at all. -->
+    <link rel="preload" as="image" href="assets/hero-art.webp" media="(min-width: 701px)" fetchpriority="high" />
+    <link rel="preload" as="image" href="assets/hero-art-1200.webp" media="(max-width: 700px)" fetchpriority="high" />
     <script>
       (function () {
         var root = document.documentElement;
@@ -144,7 +148,7 @@
       <section class="section hero" id="about" aria-label="About XST">
         <div class="hero-art" aria-hidden="true"></div>
         <div class="container hero-inner">
-          <h1 class="hero-heading" data-split-lines data-accent="stops:accent-fade scroll.:accent-outline">Cover art that stops the scroll.</h1>
+          <h1 class="hero-heading" data-split-lines data-accent="stops:accent-fade scroll.:accent-outline" data-cycle="scroll.|feed.|thumb.">Cover art that stops the scroll.</h1>
           <p class="hero-copy" data-intro="2">
             Every good song needs cover art that grabs someone before they hit play. The art is the
             first thing they see, and it's what makes them curious enough to listen.
@@ -172,8 +176,8 @@
                 <span class="impact-stat-label">Covers shipped</span>
               </div>
               <div class="impact-stat">
-                <span class="impact-stat-value" id="impactBest">From The Start</span>
-                <span class="impact-stat-label" id="impactBestLabel">Best-performing cover · Funk : -Prey, ZMAJOR, zxnc, Emrld!</span>
+                <span class="impact-stat-value" id="impactBest">From The Start - Funk</span>
+                <span class="impact-stat-label" id="impactBestLabel">Best-performing cover · -Prey, ZMAJOR, zxnc, Emrld!</span>
               </div>
               <div class="impact-stat">
                 <span class="impact-stat-value" id="impactAvg">2M</span>
@@ -368,6 +372,7 @@
     </script>
 
     <script src="lines.js"></script>
+    <script src="word-cycle.js"></script>
     <script>
       (function () {
         var root = document.documentElement;
@@ -381,6 +386,7 @@
           if (window.xstSplitLines) window.xstSplitLines(".hero-heading");
           root.classList.remove("is-loading");
           root.classList.add("is-ready");
+          if (window.xstWordCycle) window.xstWordCycle(".hero-heading");
         }
 
         // Wait for both signals — fonts settled AND the depixelating mark

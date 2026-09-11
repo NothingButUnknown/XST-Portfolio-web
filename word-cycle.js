@@ -1,0 +1,124 @@
+// ---------- hero payoff-word cycler ----------
+// Cycles the last word of the hero headline through a placeholder list,
+// reproducing the swap motion measured off Fixing/2026-09-11 21-12-01.mp4:
+// old word cuts out instantly, new word fades in over ~230ms with zero
+// movement, holds ~2.5s, repeats. One moving thing in the hero — no slide,
+// no blur, no stagger.
+//
+// data-cycle="word|word|word" (pipe-separated) on the same heading that
+// carries data-split-lines / data-accent. The FIRST word must match the
+// word already in data-accent so lines.js's rebuild and this module agree
+// on which span is the rotator. Placeholder text only — swap the list (or
+// drop the attribute) when real copy lands.
+
+(function () {
+  var HOLD_MS = 2500;
+  var FADE_MS = 230;
+  var FIRST_DELAY_MS = 1200;
+
+  function reducedMotion() {
+    return (
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
+  }
+
+  function widestWidth(span, words) {
+    // Offscreen clone, same classes/font, so measuring never touches
+    // layout the user can see.
+    var probe = span.cloneNode(false);
+    probe.style.position = "absolute";
+    probe.style.visibility = "hidden";
+    probe.style.left = "-9999px";
+    probe.style.top = "0";
+    probe.style.minWidth = "0";
+    probe.style.display = "inline-block";
+    document.body.appendChild(probe);
+
+    var max = 0;
+    words.forEach(function (word) {
+      probe.textContent = word;
+      max = Math.max(max, probe.getBoundingClientRect().width);
+    });
+
+    document.body.removeChild(probe);
+    return max;
+  }
+
+  function cycle(heading) {
+    var raw = heading.dataset.cycle || "";
+    var words = raw.split("|").map(function (w) { return w.trim(); }).filter(Boolean);
+    if (words.length < 2) return;
+
+    // .line and .line-inner are spans too, and when the accent word is the
+    // only thing on its line their textContent also equals words[0] — so
+    // matching on text alone picks the wrapper, not the accent span inside
+    // it, and swapping its textContent would blow away the accent span and
+    // its font treatment. Leaf spans only.
+    var span = null;
+    Array.prototype.forEach.call(heading.querySelectorAll("span"), function (el) {
+      if (el.children.length === 0 && el.textContent.trim() === words[0]) span = el;
+    });
+    if (!span) return; // lines.js hasn't produced the accent span — nothing to cycle
+
+    span.classList.add("is-cycling");
+
+    function reserveWidth() {
+      var w = widestWidth(span, words);
+      if (w > 0) span.style.minWidth = Math.ceil(w) + "px";
+    }
+    reserveWidth();
+
+    var onResize = function () {
+      // A resize can also change font-size (clamp on vw); re-measure rather
+      // than trust the old reservation.
+      reserveWidth();
+    };
+    window.addEventListener("resize", onResize);
+
+    if (reducedMotion()) return; // first word stays put, no timer starts
+
+    var visible = true;
+    var io =
+      "IntersectionObserver" in window
+        ? new IntersectionObserver(
+            function (entries) {
+              visible = entries[0].isIntersecting;
+            },
+            { threshold: 0 }
+          )
+        : null;
+    if (io) io.observe(heading);
+
+    var i = 0;
+    var timer = null;
+
+    function swap() {
+      if (document.visibilityState !== "visible" || !visible) {
+        // Skip this tick, try again next interval rather than swapping
+        // while nobody can see it.
+        return;
+      }
+      i = (i + 1) % words.length;
+      span.style.transition = "none";
+      span.style.opacity = "0";
+      span.textContent = words[i];
+      // Force a reflow so the transition below doesn't get coalesced with
+      // the opacity:0 set above.
+      void span.offsetWidth;
+      requestAnimationFrame(function () {
+        span.style.transition = "opacity " + FADE_MS + "ms ease-out";
+        span.style.opacity = "1";
+      });
+    }
+
+    setTimeout(function () {
+      swap();
+      timer = setInterval(swap, HOLD_MS);
+    }, FIRST_DELAY_MS);
+  }
+
+  window.xstWordCycle = function (selector) {
+    document.querySelectorAll(selector).forEach(cycle);
+  };
+})();

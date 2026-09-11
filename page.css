@@ -546,6 +546,14 @@
   transition-delay: calc(90ms * var(--line-i, 0));
 }
 
+/* The cycling payoff word (word-cycle.js) needs its own box so a min-width
+   can be reserved against its widest variant — otherwise a wider word wraps
+   and .line's overflow clips it instead of just reflowing. */
+.hero-heading .is-cycling {
+  display: inline-block;
+  will-change: opacity;
+}
+
 /* ============================================================
    first-load screen — the XST mark resolving out of a coarse
    pixel mosaic. Only exists in the DOM's first paint when

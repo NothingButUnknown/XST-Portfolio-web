@@ -98,11 +98,12 @@
       const art = document.createElement("div");
       art.className = "artist-card-art";
       const img = document.createElement("img");
-      img.src = artist.img;
       img.alt = "";
       img.draggable = false;
+      // loading/decoding before src — see the matching note in scene.js.
       img.loading = trackIndex < 4 ? "eager" : "lazy";
       img.decoding = "async";
+      img.src = artist.img;
       art.appendChild(img);
       card.appendChild(art);
 

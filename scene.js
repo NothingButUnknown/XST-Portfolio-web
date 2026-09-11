@@ -120,7 +120,10 @@ const sampleCoverGlow = (img, index, node) => {
     coverGlow[index] = glow;
     node.style.setProperty("--glow-rgb", glow);
   } catch (error) {
-    // Canvas sampling failed (e.g. tainted source); keep the fallback glow.
+    // Canvas sampling failed (e.g. tainted source); keep the fallback glow,
+    // but log it — this used to fail completely silently, which made a
+    // per-machine glow regression impossible to diagnose from a report.
+    console.warn(`[scene] glow sampling failed for cover ${index}:`, error);
   }
 };
 
@@ -138,13 +141,18 @@ const nodes = catalogue.map((item, index) => {
   button.setAttribute("aria-label", `Open ${item.title || "Untitled — " + item.id}`);
 
   const img = document.createElement("img");
-  img.src = `assets/covers/thumb/${item.file}`;
   img.alt = "";
   img.draggable = false;
   img.width = 480;
   img.height = 480;
+  // loading/decoding must be set BEFORE src — some browsers latch the
+  // lazy/eager decision at src-assignment time, so setting it after src (as
+  // this used to) eager-loads on Chromium but can lazy-load the same node on
+  // Safari/Firefox. That inconsistency is what made covers occasionally fail
+  // to appear until a refresh warmed the cache.
   img.loading = index < 6 ? "eager" : "lazy";
   img.decoding = "async";
+  img.src = `assets/covers/thumb/${item.file}`;
   button.appendChild(img);
 
   sceneInner.appendChild(button);
@@ -153,6 +161,11 @@ const nodes = catalogue.map((item, index) => {
     sampleCoverGlow(img, index, button);
   } else {
     img.addEventListener("load", () => sampleCoverGlow(img, index, button), { once: true });
+    img.addEventListener(
+      "error",
+      () => console.warn(`[scene] cover thumb failed to load: ${img.src}`),
+      { once: true }
+    );
   }
 
   const y = 1 - (index / Math.max(catalogue.length - 1, 1)) * 2;
@@ -176,7 +189,10 @@ if (indexReadout) {
 
 let targetRotationX = -10;
 let targetRotationY = 0;
-let targetRotationZ = -6;
+// Was -6: a permanent screen roll on top of the per-tile cant below (see
+// `roll` in render()). Pure decoration that tilted "straight up" 6° off
+// vertical and fought the up-means-up fix — cut it.
+let targetRotationZ = 0;
 let currentRotationX = targetRotationX;
 let currentRotationY = targetRotationY;
 let currentRotationZ = targetRotationZ;
@@ -197,20 +213,30 @@ const rotatePoint = (point, rotationX, rotationY, rotationZ) => {
   const zRad = (rotationZ * Math.PI) / 180;
 
   let { x, y, z } = point;
-  let nextY = y * Math.cos(xRad) - z * Math.sin(xRad);
-  let nextZ = y * Math.sin(xRad) + z * Math.cos(xRad);
-  y = nextY;
-  z = nextZ;
 
-  let nextX = x * Math.cos(yRad) + z * Math.sin(yRad);
-  nextZ = -x * Math.sin(yRad) + z * Math.cos(yRad);
+  // 1. Yaw, about the globe's own vertical axis. This must happen BEFORE
+  //    pitch so the pitch axis below stays pinned to the screen instead of
+  //    being carried around by the spin. With pitch applied first (the old
+  //    order), the pitch axis drifted as the globe idle-spun — at some yaw
+  //    angles a vertical drag tilted correctly, at others it rotated about
+  //    the view axis and pinwheeled the whole cloud sideways.
+  const nextX = x * Math.cos(yRad) + z * Math.sin(yRad);
+  const nextZ1 = -x * Math.sin(yRad) + z * Math.cos(yRad);
   x = nextX;
-  z = nextZ;
+  z = nextZ1;
 
-  nextX = x * Math.cos(zRad) - y * Math.sin(zRad);
-  nextY = x * Math.sin(zRad) + y * Math.cos(zRad);
+  // 2. Pitch, about the screen-horizontal axis. Up is up at every yaw angle.
+  const nextY = y * Math.cos(xRad) - z * Math.sin(xRad);
+  const nextZ2 = y * Math.sin(xRad) + z * Math.cos(xRad);
+  y = nextY;
+  z = nextZ2;
 
-  return { x: nextX, y: nextY, z };
+  // 3. Roll, in screen space.
+  return {
+    x: x * Math.cos(zRad) - y * Math.sin(zRad),
+    y: x * Math.sin(zRad) + y * Math.cos(zRad),
+    z,
+  };
 };
 
 const setActiveCover = (index) => {
@@ -237,6 +263,11 @@ let cachedBoxWidth = 0;
 let cachedBoxHeight = 0;
 let cachedSceneOffsetLeft = 0;
 let cachedSceneOffsetTop = 0;
+// Sphere radius in px, refreshed alongside the rest of the geometry cache.
+// Pointer drag reads this to convert a screen-pixel delta into degrees, so
+// the drag tracks the finger 1:1 at any viewport size instead of using a
+// fixed, arbitrary deg-per-pixel constant.
+let sphereRadius = 0;
 
 const resizeSceneWeb = () => {
   if (!sceneWeb || !scene) return;
@@ -258,27 +289,56 @@ const resizeSceneWeb = () => {
   cachedBoxHeight = innerRect.height;
   cachedSceneOffsetLeft = innerRect.left - rect.left + innerRect.width / 2;
   cachedSceneOffsetTop = innerRect.top - rect.top + innerRect.height / 2;
+  sphereRadius = Math.min(cachedBoxWidth, cachedBoxHeight) * 0.5;
 };
 
 resizeSceneWeb();
 window.addEventListener("resize", resizeSceneWeb);
 
+// Reveal duration in wall-clock ms, independent of refresh rate (see below).
+const REVEAL_MS = 820;
+// 0 means "no previous frame yet" — render() computes a safe first-frame dt.
+let lastFrameTime = 0;
+
 const render = () => {
+  const now = performance.now();
+  // Elapsed time since the last frame, clamped so a stalled tab or a long
+  // scroll-away doesn't produce one giant catch-up jump when it resumes.
+  const dt = lastFrameTime ? Math.min(now - lastFrameTime, 64) : 16.7;
+  lastFrameTime = now;
+  // Frame-equivalents at a 60Hz baseline — every per-frame constant below
+  // used to advance a fixed amount every requestAnimationFrame callback, so
+  // the reveal and the rotation settle ran 2-4x faster on a 120-240Hz
+  // display than on 60Hz. Scaling by elapsed time instead makes the motion
+  // take the same wall-clock time everywhere.
+  const frames = dt / 16.667;
+
   if (loadProgress < 1) {
-    loadProgress = Math.min(1, loadProgress + 0.035);
+    loadProgress = Math.min(1, loadProgress + dt / REVEAL_MS);
   }
 
   // No momentum/coasting after release — target rotation only moves from
   // direct input (drag or arrows) or this idle spin while untouched.
   if (!isDragging) {
-    targetRotationY += idleSpin;
+    targetRotationY += idleSpin * frames;
   }
 
-  currentRotationX += (targetRotationX - currentRotationX) * 0.14;
-  currentRotationY += (targetRotationY - currentRotationY) * 0.14;
-  currentRotationZ += (targetRotationZ - currentRotationZ) * 0.14;
+  const settleEase = 1 - Math.pow(1 - 0.14, frames);
+  currentRotationX += (targetRotationX - currentRotationX) * settleEase;
+  currentRotationY += (targetRotationY - currentRotationY) * settleEase;
+  currentRotationZ += (targetRotationZ - currentRotationZ) * settleEase;
 
-  const radius = Math.min(cachedBoxWidth, cachedBoxHeight) * 0.5;
+  const radius = sphereRadius;
+  // Smoothstep, not linear — a linear reveal is fine for opacity but reads
+  // as mechanical for motion. Same curve drives the rise and the fade.
+  const eased = loadProgress * loadProgress * (3 - 2 * loadProgress);
+  // How far below rest the globe starts, collapsing to 0 once settled — this
+  // is the whole reveal. Previously x AND y were both scaled by loadProgress,
+  // which stacked every tile at dead-centre and let them fly outward toward
+  // their own resting angle (left tiles left, right tiles right, bottom
+  // tiles down) — that's what read as "coming up from the sides". Now every
+  // tile sits at its final x from frame one and only travels vertically.
+  const rise = (1 - eased) * radius * 0.6;
   const projectedPoints = [];
   let closestIndex = 0;
   let closestDepth = -Infinity;
@@ -286,11 +346,10 @@ const render = () => {
   nodes.forEach((node, index) => {
     const point = rotatePoint(points[index], currentRotationX, currentRotationY, currentRotationZ);
     const perspective = 2.75 / (2.75 - point.z);
-    const settle = loadProgress;
-    const x = point.x * radius * perspective * settle;
-    const y = point.y * radius * perspective * settle;
-    const scale = (0.5 + perspective * 0.4) * (0.4 + settle * 0.6);
-    const opacity = (0.28 + Math.max(point.z, -0.65) * 0.46 + 0.36) * settle;
+    const x = point.x * radius * perspective;
+    const y = point.y * radius * perspective + rise;
+    const scale = (0.5 + perspective * 0.4) * (0.55 + eased * 0.45);
+    const opacity = (0.28 + Math.max(point.z, -0.65) * 0.46 + 0.36) * eased;
     const roll = currentRotationZ * 0.08 + point.x * 6;
 
     node.style.transform = `translate3d(calc(-50% + ${x}px), calc(-50% + ${y}px), 0) scale(${scale}) rotate(${roll}deg)`;
@@ -378,7 +437,15 @@ const render = () => {
 // The sphere sits well down the page now, so its rAF loop only needs to run
 // while it's actually on screen — pause it the rest of the time instead of
 // spinning 25 nodes + the web canvas for a section nobody can see.
-let sceneVisible = true;
+//
+// Starts false: the observer is the sole starter of the loop (see the
+// bottom of this file, where the old code also called render() once
+// unconditionally). That bare extra call used to run ahead of the
+// observer's first async callback, burning real reveal time — dt-scaled
+// per Fix 5 — against a globe nobody could see yet. On a slow main thread
+// loadProgress could reach 1 before the user ever scrolled to it, so some
+// visitors never saw the entrance at all.
+let sceneVisible = false;
 let renderLoopId = null;
 
 const sceneVisibilityObserver = new IntersectionObserver(
@@ -386,6 +453,10 @@ const sceneVisibilityObserver = new IntersectionObserver(
     sceneVisible = entry.isIntersecting;
     if (sceneVisible && renderLoopId === null) {
       resizeSceneWeb();
+      // Force a fresh dt baseline — otherwise the elapsed time since the
+      // loop last stopped (potentially minutes, if the user scrolled away
+      // and back) would be clamped but still stale relative to now.
+      lastFrameTime = 0;
       renderLoopId = requestAnimationFrame(render);
     }
   },
@@ -414,10 +485,15 @@ scene.addEventListener("pointerdown", (event) => {
   scene.setPointerCapture(event.pointerId);
 });
 
-// Touch fingers cover less screen distance per gesture than a mouse does, so
-// the same degrees-per-pixel factor that feels right with a mouse reads as
-// sluggish on a phone. Scale it up for coarse (touch) pointers only.
-const dragSensitivity = isCoarsePointer ? 1.6 : 1;
+// How many degrees one screen pixel of drag is worth. Derived from the
+// sphere's own on-screen radius so the point under the cursor stays under
+// the cursor at any viewport size, instead of the old fixed 0.24/0.2
+// constants (tuned for one screen size, then patched with a separate 1.6x
+// multiplier for touch — three magic numbers standing in for one fact about
+// the sphere's geometry).
+const MAX_PITCH = 72;
+const clampPitch = (value) => Math.min(MAX_PITCH, Math.max(-MAX_PITCH, value));
+const degreesPerPixel = () => (sphereRadius > 0 ? 57.29578 / sphereRadius : 0.2);
 
 scene.addEventListener("pointermove", (event) => {
   if (!isDragging) return;
@@ -426,9 +502,14 @@ scene.addEventListener("pointermove", (event) => {
 
   dragMoved = Math.max(dragMoved, Math.hypot(dragX, dragY));
   // Direct 1:1-feeling mapping, no momentum: drag right spins right, drag
-  // down tilts down, and rotation stops the instant the pointer stops.
-  targetRotationY = startRotationY + dragX * 0.24 * dragSensitivity;
-  targetRotationX = startRotationX + dragY * 0.2 * dragSensitivity;
+  // down brings the content down, and rotation stops the instant the
+  // pointer stops. (Vertical used to be inverted relative to horizontal —
+  // dragging down raised the content — which combined with the axis-order
+  // bug in rotatePoint() to make "up" depend on which way the globe
+  // happened to be facing.)
+  const degPerPx = degreesPerPixel();
+  targetRotationY = startRotationY + dragX * degPerPx;
+  targetRotationX = clampPitch(startRotationX - dragY * degPerPx);
 });
 
 const finishDrag = (event) => {
@@ -458,7 +539,7 @@ scene.addEventListener("lostpointercapture", finishDrag);
 // Shared by the keyboard arrows and the on-screen arrow buttons, so a tap
 // on a button eases the same way a keypress does.
 const rotateStep = (deltaX, deltaY) => {
-  targetRotationX += deltaX;
+  targetRotationX = clampPitch(targetRotationX + deltaX);
   targetRotationY += deltaY;
 };
 
@@ -497,9 +578,10 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "ArrowRight") {
     rotateStep(0, step);
   } else if (event.key === "ArrowUp") {
-    rotateStep(-step, 0);
-  } else if (event.key === "ArrowDown") {
+    // Matches drag: Up raises the content, Down lowers it.
     rotateStep(step, 0);
+  } else if (event.key === "ArrowDown") {
+    rotateStep(-step, 0);
   } else if (event.key === "Enter") {
     // A focused cover-node/button handles its own Enter via the native
     // click it fires; only open the active piece when the scene itself has
@@ -645,10 +727,10 @@ let lastFocusedNode = null;
 
 const thumbs = catalogue.map((item, index) => {
   const img = document.createElement("img");
-  img.src = `assets/covers/thumb/${item.file}`;
   img.alt = "";
-  img.loading = "lazy";
+  img.loading = "lazy"; // set before src, see the note in the node-build loop above
   img.decoding = "async";
+  img.src = `assets/covers/thumb/${item.file}`;
   img.tabIndex = 0;
   img.setAttribute("role", "option");
   img.addEventListener("click", () => openDetail(index));
@@ -699,6 +781,52 @@ if (contactSection) {
 }
 
 let currentDetailIndex = -1;
+// Bumped on every openDetail() call. A pending full-size load compares its
+// own token against the current one before writing anything — if the user
+// has already arrowed on to a different cover, a slow-to-resolve earlier
+// load just quietly drops instead of overwriting detailSpecs (or the image)
+// with stale data. The old code had no such guard: rapid prev/next fired
+// overlapping un-cancelled loads, and whichever resolved last won, right or
+// wrong.
+let detailToken = 0;
+
+// The globe/filmstrip already fetched and decoded this cover's thumb, so
+// painting it first is free and instant. The full-size (175-450KB, never
+// preloaded) loads in the background and is swapped in only once it's fully
+// decoded — so the overlay never shows the previous cover's artwork under
+// the new title, which is what "it grabs the image [wrong]" was.
+function setDetailImage(item) {
+  const token = ++detailToken;
+  const thumbSrc = `assets/covers/thumb/${item.file}`;
+  const fullSrc = `assets/covers/${item.file}`;
+  const streamsPart = item.streams ? ` · ${formatStreams(item.streams)} streams` : "";
+
+  detailImg.src = thumbSrc;
+  detailImg.alt = item.title || `Untitled — ${item.id}`;
+  detailImg.classList.add("is-provisional");
+  detailSpecs.textContent = "Loading specs…";
+
+  const settle = (specs) => {
+    if (token !== detailToken) return; // a later openDetail() already won
+    detailImg.classList.remove("is-provisional");
+    detailSpecs.textContent = specs;
+  };
+
+  const full = new Image();
+  full.decoding = "async";
+  full.onerror = () => settle(`JPG${streamsPart}`);
+  full.onload = () => {
+    const swap = () => {
+      if (token !== detailToken) return;
+      detailImg.src = fullSrc; // already fetched + decoded — paints with no gap
+      settle(`${full.naturalWidth} × ${full.naturalHeight} · JPG${streamsPart}`);
+    };
+    full.decode ? full.decode().then(swap, swap) : swap();
+  };
+  full.src = fullSrc;
+
+  return thumbSrc;
+}
 
 function openDetail(index) {
   const item = catalogue[index];
@@ -706,27 +834,17 @@ function openDetail(index) {
 
   currentDetailIndex = index;
 
-  const src = `assets/covers/${item.file}`;
-  detailImg.src = src;
-  detailImg.alt = item.title || `Untitled — ${item.id}`;
+  const thumbSrc = setDetailImage(item);
   detailEyebrow.textContent = `${item.id} · ${item.kind.toUpperCase()}`;
   setAccentTitle(detailTitle, item.title || `Untitled — ${item.id}`);
   detailNote.textContent = item.note || "";
-  detailSpecs.textContent = "Loading specs…";
   detailCta.textContent = "Commission a cover like this";
-
-  const probe = new Image();
-  probe.onload = () => {
-    const streamsPart = item.streams ? ` · ${formatStreams(item.streams)} streams` : "";
-    detailSpecs.textContent = `${probe.naturalWidth} × ${probe.naturalHeight} · JPG${streamsPart}`;
-  };
-  probe.src = src;
 
   spotifyCard?.update({
     title: item.title || `Untitled — ${item.id}`,
     artist: item.note || "XST",
     duration: item.duration || 180,
-    albumArt: src,
+    albumArt: thumbSrc,
     spotify: item.spotify || "",
     spotifyId: item.spotifyId || "",
   });
@@ -804,7 +922,8 @@ if (navLinks.length && navSections.length) {
   navSections.forEach((section) => navObserver.observe(section));
 }
 
-render();
+// render() is started solely by the IntersectionObserver above once the
+// sphere actually enters the viewport — see the sceneVisible comment there.
 
 // ---------- custom cursor (mouse-with-hover devices only) ----------
 //
