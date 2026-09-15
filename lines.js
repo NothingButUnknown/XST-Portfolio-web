@@ -42,6 +42,15 @@
       }
     });
 
+    // The cycling payoff word (word-cycle.js) gets swapped for longer
+    // variants at runtime and carries a reserved min-width, so bucketing
+    // against whichever variant happens to be in the DOM right now can hand
+    // a line more words than will actually fit once a longer variant
+    // arrives — and .line is overflow:hidden below, so that clips instead of
+    // reflowing. Measure the worst case (the widest variant) instead.
+    const cycleWords = (el.dataset.cycle || "").split("|").map((w) => w.trim()).filter(Boolean);
+    const widestCycleWord = cycleWords.reduce((a, b) => (b.length > a.length ? b : a), "");
+
     // Measure pass: lay the words out as plain inline spans first so their
     // natural offsetTop tells us where the browser actually wrapped —
     // that's the only reliable way to find line breaks for text that
@@ -49,15 +58,20 @@
     el.textContent = "";
     const measureSpans = words.map((word, i) => {
       const span = document.createElement("span");
-      span.textContent = word + (i < words.length - 1 ? " " : "");
+      const measureWord = word === cycleWords[0] ? widestCycleWord : word;
+      span.textContent = measureWord + (i < words.length - 1 ? " " : "");
       span.style.display = "inline";
       el.appendChild(span);
       return span;
     });
 
+    // Bucket the ORIGINAL word (+ its trailing space), not the measure
+    // span's textContent — that content is the substituted widest-cycle-word
+    // stand-in for the payoff slot, only ever meant to influence offsetTop,
+    // never to end up in the real DOM below.
     const lineTops = [];
     const buckets = [];
-    measureSpans.forEach((span) => {
+    measureSpans.forEach((span, i) => {
       const top = span.offsetTop;
       let idx = lineTops.indexOf(top);
       if (idx === -1) {
@@ -65,7 +79,7 @@
         buckets.push([]);
         idx = lineTops.length - 1;
       }
-      buckets[idx].push(span.textContent);
+      buckets[idx].push(words[i] + (i < words.length - 1 ? " " : ""));
     });
 
     // Rebuild: one .line (the overflow-hidden mask) per bucket, wrapping a

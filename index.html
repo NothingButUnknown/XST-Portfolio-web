@@ -147,11 +147,19 @@
       <!-- About / hero -->
       <section class="section hero" id="about" aria-label="About XST">
         <div class="hero-art" aria-hidden="true"></div>
+        <div class="art-drift" aria-hidden="true">
+          <div class="art-drift-diagonal">
+            <div class="art-drift-track">
+              <span class="art-drift-icon"></span>
+              <span class="art-drift-icon"></span>
+            </div>
+          </div>
+        </div>
         <div class="container hero-inner">
-          <h1 class="hero-heading" data-split-lines data-accent="stops:accent-fade scroll.:accent-outline" data-cycle="scroll.|feed.|thumb.">Cover art that stops the scroll.</h1>
+          <h1 class="hero-heading" data-split-lines data-accent="see.:cycle-word" data-cycle="see.|feel.|remember.|recognize.|experience.">Turning music into something you can see.</h1>
           <p class="hero-copy" data-intro="2">
-            Every good song needs cover art that grabs someone before they hit play. The art is the
-            first thing they see, and it's what makes them curious enough to listen.
+            Sound is invisible. The cover is the only part of a track someone can see
+            before they hear it, and it's what decides whether they press play.
           </p>
         </div>
 
@@ -176,7 +184,7 @@
                 <span class="impact-stat-label">Covers shipped</span>
               </div>
               <div class="impact-stat">
-                <span class="impact-stat-value" id="impactBest">From The Start - Funk</span>
+                <span class="impact-stat-value impact-stat-value--title" id="impactBest">From The Start - Funk</span>
                 <span class="impact-stat-label" id="impactBestLabel">Best-performing cover · -Prey, ZMAJOR, zxnc, Emrld!</span>
               </div>
               <div class="impact-stat">
@@ -209,7 +217,12 @@
 
         <div class="scene" id="scene" aria-label="Rotating gallery of XST cover art. Drag to rotate, use arrow keys, tap a piece to view it." tabindex="0">
           <canvas class="scene-web" id="sceneWeb" aria-hidden="true"></canvas>
-          <div class="scene-inner" id="sceneInner"></div>
+          <div class="scene-inner" id="sceneInner">
+            <!-- Static mark sitting in the sphere's hub — scene.js keeps
+                 every cover tile pushed outside this radius (see HUB_RADIUS
+                 in render()), so this never gets covered as the globe spins. -->
+            <div class="scene-badge" aria-hidden="true"><img src="assets/xst-logo.png" alt="" /></div>
+          </div>
         </div>
       </section>
 

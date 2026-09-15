@@ -35,7 +35,9 @@
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--chrome-dim);
+  /* Was --chrome-dim (#6f7176) — now that the names below are solid, that
+     left the label sitting above them as the faintest thing in the block. */
+  color: rgba(220, 221, 225, 0.55);
   margin-bottom: 1.25rem;
 }
 
@@ -61,19 +63,21 @@
   padding: 0 clamp(1.5rem, 3vw, 2.5rem);
   font-weight: 900;
   font-stretch: 125%;
-  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
-  letter-spacing: 0.02em;
+  font-size: clamp(1.15rem, 2.4vw, 1.7rem);
+  letter-spacing: 0.01em;
   text-transform: uppercase;
-  color: transparent;
-  -webkit-text-stroke: 1px var(--hairline-strong);
+  /* Was color:transparent + a 1px stroke at --hairline-strong (24% white) on
+     a #060606 ground — effectively invisible. This row is social proof; it
+     has to read at a glance, not on hover. Solid fill, one step under the
+     headline's full white. */
+  color: rgba(220, 221, 225, 0.86);
   white-space: nowrap;
   user-select: none;
-  transition: color 0.25s ease, -webkit-text-stroke-color 0.25s ease;
+  transition: color 0.25s ease;
 }
 
 .ticker-item:hover {
   color: var(--chrome);
-  -webkit-text-stroke-color: var(--chrome);
 }
 
 /* ---------- artist stage: flat row, no bordered panel ---------- */

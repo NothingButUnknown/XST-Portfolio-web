@@ -28,8 +28,14 @@
      same small sphere), leaving a dead band of empty width either side —
      raised so the sphere actually grows on bigger screens instead of just
      floating in more black. */
-  --sphere: min(72vw, 78vh, 860px);
-  --tile: calc(var(--sphere) * 0.22);
+  /* Grown from 72vw/78vh/860px — covers are the point of the site and were
+     rendering far under their own tile size (scene.js's perspective scale
+     used to floor at 0.70). Bigger stage + the scale fix below get a cover
+     to roughly its true size on screen. */
+  --sphere: min(80vw, 82vh, 1000px);
+  /* 0.21, was 0.22 — a touch smaller ratio against a bigger sphere still
+     nets larger tiles in px, with more absolute gap between neighbours. */
+  --tile: calc(var(--sphere) * 0.21);
   --tile-radius: 12px;
 }
 
@@ -105,6 +111,156 @@ a {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* Third ambient layer: a giant hairline vinyl/soundwave motif, drifting
+   slow (was type-based — a wordmark marquee — before this image swap; see
+   .art-drift-track img below for the asset). Still position:fixed (glued
+   to the viewport through scroll, same as .art-wash/.art-grain above) —
+   but markup lives inside .hero.section, in the DOM right after .hero-art
+   and before .hero-inner (see index.html), not up here beside the other
+   two. Reason: .hero-art paints a full-strength opaque brand image, and
+   .hero.section never becomes its own stacking context (no z-index set),
+   so .hero-art's z-index:0 escapes upward and competes directly with this
+   layer inside .page's stacking context — whichever is later in the DOM
+   wins. Placed up here (before .hero-art), the opaque art painted straight
+   over it and the drift was invisible through the entire hero. Placed
+   after .hero-art, it paints over the art instead, and still sits under
+   .hero-inner's explicit z-index:1 so the headline stays legible on top.
+   Two copies of the same image back to back + a -50% translate on
+   .art-drift-track is the seamless-marquee trick — the loop point is
+   invisible because copy 2 is pixel-identical to copy 1.
+   Two separate animations on two separate elements on purpose: drift
+   (position) lives on .art-drift-track, breathe (opacity) lives on the
+   outer .art-drift. Putting both on one element means one keyframe fighting
+   itself over two properties every frame for no reason. */
+.art-drift {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  pointer-events: none;
+  mask-image: radial-gradient(120% 80% at 50% 50%, black 20%, transparent 78%);
+  -webkit-mask-image: radial-gradient(120% 80% at 50% 50%, black 20%, transparent 78%);
+  animation: art-drift-breathe 14s ease-in-out infinite;
+}
+
+/* Rotation lives on this wrapper, not on .art-drift-track itself, because
+   .art-drift-track is the giant scrolling strip (two spans back to back,
+   ~9000px each) — rotating THAT would spin it around its own center, which
+   sits thousands of pixels off to the side, and fling the visible portion
+   clean off-screen. This wrapper is viewport-sized, so its center is
+   screen-center, the sane pivot for a tilt. */
+.art-drift-diagonal {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  transform: rotate(-32deg);
+}
+
+.art-drift-track {
+  display: flex;
+  white-space: nowrap;
+  animation: art-drift-x 42s linear infinite;
+}
+
+/* generations/xst_drift-feed-icons_1789171158.png (Nano Banana 2 Lite,
+   generated) — a loose row of hairline feed-UI icons (play / like / share /
+   skip), quiet on purpose: sparse icons with a lot of black between them,
+   not a dense continuous graphic, so the drift reads as texture and not as
+   a second thing competing with the headline. No alpha channel, so it was
+   first shown via mix-blend-mode: screen (white-only, blend leaves black
+   untouched) — swapped to mask-image instead so the icons can actually be
+   colored: the PNG's luminance becomes the shape (mask), and a plain
+   background paints it, same masking technique already used for
+   .hero-art/.art-drift above (page.css:163, styles.css:137). background:
+   var(--art-mid) is the existing "atmosphere red" token (styles.css:12,
+   sampled from the hero art, not a new color) — darker and redder than
+   plain white, per the "small fog" ask. filter: drop-shadow with the same
+   color is the fog itself: drop-shadow follows the mask's alpha shape and
+   blurs it, so each icon bleeds a soft dark-red haze instead of having a
+   crisp edge. aspect-ratio replaces the auto-width an <img> got for free
+   from its own intrinsic size — a masked element has no intrinsic size, so
+   without it "width: auto" would collapse to 0. */
+.art-drift-track .art-drift-icon {
+  height: clamp(6.5rem, 16vw, 16rem);
+  aspect-ratio: 21 / 9;
+  width: auto;
+  flex: none;
+  display: block;
+  background: var(--art-mid);
+  /* drift-icons.webp has no alpha channel (solid black canvas) — CSS
+     masking defaults to alpha-based matching for a raster source, and an
+     opaque image's alpha is 1 everywhere, so without mask-mode:luminance
+     the whole box unmasks as one solid rectangle instead of just the icon
+     strokes. Luminance mode reads brightness instead: black = transparent,
+     white = opaque, which is what actually cuts the icon shapes out. */
+  mask-image: url("assets/drift-icons.webp");
+  -webkit-mask-image: url("assets/drift-icons.webp");
+  mask-mode: luminance;
+  mask-size: contain;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-position: center;
+  filter: drop-shadow(0 0 26px var(--art-mid));
+}
+
+/* .art-drift-diagonal's constant -32deg tilt is what turns this seamless
+   leftward slide into a top-right -> lower-left drift on screen. */
+@keyframes art-drift-x {
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+/* Splits the difference between the first pass (.18-.34, read as a loud
+   graphic) and the second (.08-.16, went too flat/plain once it also lost
+   its color to the red mask above) — this is the "more but not too much"
+   middle ground. */
+@keyframes art-drift-breathe {
+  0%,
+  100% {
+    opacity: 0.16;
+  }
+  50% {
+    opacity: 0.26;
+  }
+}
+
+@media (max-width: 700px) {
+  .art-drift-track .art-drift-icon {
+    height: clamp(5rem, 24vw, 8rem);
+  }
+
+  .art-drift {
+    animation-name: art-drift-breathe-mobile;
+  }
+
+  @keyframes art-drift-breathe-mobile {
+    0%,
+    100% {
+      opacity: 0.09;
+    }
+    50% {
+      opacity: 0.15;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .art-drift {
+    animation: none;
+    opacity: 0.16;
+  }
+
+  .art-drift-track {
+    animation: none;
+  }
+}
+
 /* ---------- scene ---------- */
 
 .scene {
@@ -112,7 +268,7 @@ a {
   width: 100%;
   max-width: 1500px;
   margin: 0 auto;
-  height: min(90vh, 980px);
+  height: min(94vh, 1120px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -156,6 +312,55 @@ a {
   touch-action: none;
 }
 
+/* Sits in the sphere's own hub — scene.js's HUB_RADIUS keeps every cover
+   tile pushed clear of this radius, so the mark never gets covered as the
+   globe rotates. z-index:0 puts it behind all but the very farthest tiles
+   (those get z-index 0 too, at point.z = -1) — reads as sitting inside the
+   sphere, not pasted on top of it. */
+.scene-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* No static transform — this is now a real point on the sphere (see
+     badgePoint in scene.js's render()), not a fixed screen-center overlay.
+     JS writes translate3d(-50%+x, -50%+y, 0) scale(...) every frame, same
+     as .cover-node, so it rotates, scales, and z-orders with the globe and
+     fades out when that point swings to the back face. */
+  z-index: 0;
+  /* scene.js's BADGE_HALF_WIDTH reads this element's live width every resize
+     (see resizeSceneWeb's cachedBadgeHalfWidth) — no ratio to keep in sync
+     here anymore, just size the mark. Shrunk from 0.34: at that size the
+     wordmark ate the whole hub the covers should be filling. */
+  width: calc(var(--sphere) * 0.2);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: scene-badge-pulse 4.5s ease-in-out infinite;
+}
+
+.scene-badge img {
+  width: 100%;
+  height: auto;
+  display: block;
+  opacity: 0.96;
+  filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 34px rgba(224, 27, 27, 0.45))
+    drop-shadow(0 0 70px rgba(224, 27, 27, 0.22));
+}
+
+@keyframes scene-badge-pulse {
+  0%, 100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.18);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-badge {
+    animation: none;
+  }
+}
+
 .cover-node {
   position: absolute;
   top: 50%;
@@ -196,7 +401,10 @@ a {
 .cover-node:hover img,
 .cover-node:focus-visible img,
 .cover-node.is-active img {
-  transform: scale(1.4);
+  /* 1.18, was 1.4 — tiles now render ~30% bigger at rest (see --tile and
+     scene.js's scale fix), so the old grow pushed a hovered cover into its
+     neighbours. Keep scene.js's keep-out math (search "1.18") in sync. */
+  transform: scale(1.18);
 }
 
 .cover-node:hover img,
@@ -340,10 +548,15 @@ a {
   align-items: center;
   user-select: none;
   -webkit-user-select: none;
+  /* Nudged off the left edge so its weight balances the nav links'
+     weight off the right edge, now that it matches their scale. */
+  margin-left: 0.6rem;
 }
 
 .wordmark img {
-  height: 28px;
+  /* Was 28px — towered over the 0.78rem nav links next to it. Matched
+     down to their scale. */
+  height: 18px;
   width: auto;
   display: block;
 }
@@ -706,6 +919,16 @@ a {
    headings set uppercase (below) — the outline face is a Didone and only
    really reads at caps. */
 
+/* Structural only, not a voice — the hero headline is one solid Archivo 900
+   line, but word-cycle.js needs a leaf span to swap the payoff word's text
+   in. Inherits everything so it reads as a continuation of the line, not a
+   fourth accent face next to .accent-outline/.accent-italic/.accent-fade. */
+.cycle-word {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
 .accent-outline,
 .accent-italic {
   font-optical-sizing: auto;
@@ -834,11 +1057,30 @@ a {
   }
 }
 
-@media (max-width: 600px) {
+/* Phone scene sizing — matches the 700px breakpoint page.css already uses
+   for the hero art, so the whole viewport shifts to "phone" together. Width
+   is the binding constraint on a phone, not height, so --sphere is derived
+   from vw first (the desktop rule's vh-first min() left a mostly-empty
+   viewport-height box on a tall, narrow screen). */
+@media (max-width: 700px) {
   :root {
-    --tile: calc(var(--sphere) * 0.26);
+    --sphere: min(94vw, 58vh);
+    --tile: calc(var(--sphere) * 0.28);
   }
 
+  .scene {
+    /* Was min(94vh, 1120px) — on a phone the sphere is far smaller than the
+       viewport, so a vh-based box left a screen of dead black around it.
+       Size the box to what the sphere + its tile overhang actually need. */
+    height: calc(var(--sphere) + var(--tile) * 1.4);
+  }
+
+  .scene-badge {
+    width: calc(var(--sphere) * 0.24);
+  }
+}
+
+@media (max-width: 600px) {
   .filmstrip {
     flex-basis: 64px;
     padding: 0 1.25rem;

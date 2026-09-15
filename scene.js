@@ -1,6 +1,7 @@
 const scene = document.querySelector("#scene");
 const sceneInner = document.querySelector("#sceneInner");
 const sceneWeb = document.querySelector("#sceneWeb");
+const sceneBadge = document.querySelector(".scene-badge");
 const indexReadout = document.querySelector("#indexReadout");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Coarse-pointer devices (phones/tablets) are typically weaker GPUs/CPUs
@@ -21,6 +22,32 @@ function formatStreams(n) {
   if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
   if (n >= 1000) return `${Math.round(n / 1000)}K`;
   return String(n);
+}
+
+// ---------- live-figure flash ----------
+// Reference: Spotify for Artists' "All-time streams · LIVE" readout — the
+// number itself flashes to the hot accent every few seconds and eases back,
+// reading as a live counter rather than a printed total. Timing is
+// irregular on purpose (real ticks don't land on a metronome); gated behind
+// reduceMotion like every other ambient loop in this file.
+// The dot's expanding ring is a plain infinite CSS animation (see
+// .impact-live-dot::before/::after in page.css) — no JS needed for it.
+const impactTotalEl = document.querySelector("#impactTotal");
+if (impactTotalEl && !reduceMotion) {
+  const FLASH_ON_MS = 620; // full length of the impact-total-glow/-ring keyframe cycle (measured off the Spotify for Artists reference) — the class must outlive its own animation, not cut it off mid-flight
+  const FLASH_GAP_MIN_MS = 2000;
+  const FLASH_GAP_MAX_MS = 2600; // measured reference cadence (was 3500-7000, much slower than the real thing)
+  const scheduleLiveFlash = () => {
+    const gap = FLASH_GAP_MIN_MS + Math.random() * (FLASH_GAP_MAX_MS - FLASH_GAP_MIN_MS);
+    setTimeout(() => {
+      impactTotalEl.classList.add("is-live-flash");
+      setTimeout(() => {
+        impactTotalEl.classList.remove("is-live-flash");
+        scheduleLiveFlash();
+      }, FLASH_ON_MS);
+    }, gap);
+  };
+  scheduleLiveFlash();
 }
 
 // Renders a title with its last word in the outline accent face (see
@@ -132,6 +159,12 @@ const sampleCoverGlow = (img, index, node) => {
 const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 const points = [];
 const lastZIndex = [];
+// The badge's own point on the unit sphere — dead center of the "front"
+// face, radius 1 like every cover point. rotatePoint() carries it through
+// the same yaw/pitch/roll as the cards, so it's a real point on the globe,
+// not a screen-space overlay.
+const badgePoint = { x: 0, y: 0, z: 1 };
+let lastBadgeZIndex = null;
 
 const nodes = catalogue.map((item, index) => {
   const button = document.createElement("button");
@@ -268,6 +301,10 @@ let cachedSceneOffsetTop = 0;
 // the drag tracks the finger 1:1 at any viewport size instead of using a
 // fixed, arbitrary deg-per-pixel constant.
 let sphereRadius = 0;
+// Half-width of the .scene-badge mark, read off the live element so render()
+// never needs a second hard-coded copy of styles.css's `--sphere` ratio (that
+// ratio now differs by breakpoint — see the @media block in styles.css).
+let cachedBadgeHalfWidth = 0;
 
 const resizeSceneWeb = () => {
   if (!sceneWeb || !scene) return;
@@ -290,6 +327,7 @@ const resizeSceneWeb = () => {
   cachedSceneOffsetLeft = innerRect.left - rect.left + innerRect.width / 2;
   cachedSceneOffsetTop = innerRect.top - rect.top + innerRect.height / 2;
   sphereRadius = Math.min(cachedBoxWidth, cachedBoxHeight) * 0.5;
+  if (sceneBadge) cachedBadgeHalfWidth = sceneBadge.getBoundingClientRect().width / 2;
 };
 
 resizeSceneWeb();
@@ -343,13 +381,119 @@ const render = () => {
   let closestIndex = 0;
   let closestDepth = -Infinity;
 
+  // Camera distance for the perspective divide below. Was 2.75, which gave
+  // the nearest tile ~2.1x the perspective multiplier of the farthest one —
+  // strong enough that the front tile visibly ballooned forward while
+  // everything else swung around IT, so the eye read that tile as the pivot
+  // instead of the sphere's actual center. Pulled back to 4.5 (~1.6x
+  // near/far spread) so the whole cluster reads as one rigid body orbiting
+  // its own center; still enough spread to keep the 3D depth cue.
+  const CAMERA_DISTANCE = 4.5;
+
+  // Half-width of the static .scene-badge mark sitting in the hub. Read from
+  // the live element (cached in resizeSceneWeb, not measured every frame) so
+  // it tracks styles.css's `width: calc(var(--sphere) * ...)` through every
+  // breakpoint instead of a second hard-coded ratio going stale at one of them.
+  const BADGE_HALF_WIDTH = cachedBadgeHalfWidth;
+  // Half-width of a tile at JS scale 1 (var(--tile) = sphere*0.21, so half
+  // is sphere*0.105 = radius*0.21).
+  const TILE_HALF_WIDTH = radius * 0.21;
+  // Keeping every tile off dead-center (the earlier HUB_RADIUS push) reads
+  // as the whole sphere being anchored to that one fixed point — not what
+  // was wanted. Most covers are free to pass in front of/behind the badge
+  // like any other point on the sphere now. Only the two specific covers
+  // that were photographed sitting on top of the badge (Fixing/image copy
+  // 4.png: Mama Mia in front, Drippin Funk behind) get pushed clear.
+  const KEEP_CLEAR_OF_BADGE = new Set(["cover-20-mama-mia.jpg", "cover-21-drippin-funk.jpg"]);
+
+  // The badge sits dead center on screen always — it's the sphere's own
+  // polar axis (0,0,1), and rotatePoint() swings a pole's x/y out toward the
+  // rim at 90° yaw same as any other point (that's correct sphere math, but
+  // it read as the mark drifting off to the edge, not "locked to the globe").
+  // What we actually want is a point that spins in place, front-to-back,
+  // without leaving the hub — so only its z (depth) comes from rotatePoint;
+  // x/y stay pinned at center (plus the same intro "rise" every tile gets).
+  let badgeX = 0;
+  let badgeY = rise;
+  if (sceneBadge) {
+    const bp = rotatePoint(badgePoint, currentRotationX, currentRotationY, currentRotationZ);
+    const bPerspective = CAMERA_DISTANCE / (CAMERA_DISTANCE - bp.z);
+    const bScale = (0.80 + bPerspective * 0.2) * (0.55 + eased * 0.45);
+    // No depth-based fade here — the badge's x/y are pinned to center (it
+    // never actually travels to the back of the sphere), so fading it by
+    // simulated z alone vanished it in place for no visible reason. The
+    // z-index below already lets real cards occlude it when they're in
+    // front; that's the only "hidden" state that should exist.
+    const bOpacity = eased;
+
+    sceneBadge.style.transform = `translate3d(calc(-50% + ${badgeX}px), calc(-50% + ${badgeY}px), 0) scale(${bScale})`;
+    sceneBadge.style.opacity = String(bOpacity);
+
+    const badgeZIndex = Math.round((bp.z + 1) * 500);
+    if (lastBadgeZIndex !== badgeZIndex) {
+      lastBadgeZIndex = badgeZIndex;
+      sceneBadge.style.zIndex = String(badgeZIndex);
+    }
+  }
+
   nodes.forEach((node, index) => {
     const point = rotatePoint(points[index], currentRotationX, currentRotationY, currentRotationZ);
-    const perspective = 2.75 / (2.75 - point.z);
-    const x = point.x * radius * perspective;
-    const y = point.y * radius * perspective + rise;
-    const scale = (0.5 + perspective * 0.4) * (0.55 + eased * 0.45);
-    const opacity = (0.28 + Math.max(point.z, -0.65) * 0.46 + 0.36) * eased;
+    const perspective = CAMERA_DISTANCE / (CAMERA_DISTANCE - point.z);
+    // 0.20, was 0.25 (and 0.80 base, was 0.5) — the old range (0.70-0.82 once
+    // multiplied through) never let a cover reach its own --tile size on
+    // screen. Raised so the near/far spread still reads as depth (perspective
+    // spans 0.818-1.286 at CAMERA_DISTANCE=4.5) but tiles land close to 1:1.
+    const scale = (0.80 + perspective * 0.2) * (0.55 + eased * 0.45);
+
+    // Rim de-crowding: projected radius r (0..1) remapped to r^SPREAD, which
+    // is >= r for r in [0,1] — pulls mid/outer points outward while pinning
+    // the center (r=0) and the silhouette (r=1). Counters how the sphere's
+    // even surface distribution (see goldenAngle above) still bunches up
+    // visually once foreshortened by the projection below.
+    const SPREAD = 0.82;
+    const r = Math.hypot(point.x, point.y);
+    const spread = r > 0.0001 ? Math.pow(r, SPREAD) / r : 1;
+
+    let x = point.x * spread * radius * perspective;
+    let y = point.y * spread * radius * perspective;
+
+    if (KEEP_CLEAR_OF_BADGE.has(catalogue[index].file)) {
+      // activeIndex still holds last frame's closest tile (this frame's
+      // isn't known until after this loop) — a one-frame lag that's never
+      // visible, and the same value projectedPoints.active uses below.
+      const isActive = index === activeIndex;
+      // .cover-node.is-active/:hover scales the inner img by 1.18x in CSS,
+      // on top of this translate/scale — account for it here too, or this
+      // tile could still grow into the badge post-hoc when it goes active.
+      const tileHalfWidth = TILE_HALF_WIDTH * scale * (isActive ? 1.18 : 1);
+      const hubRadius = tileHalfWidth + BADGE_HALF_WIDTH;
+      // Distance from the badge's own live position now, not the origin —
+      // the badge is a moving sphere point too (see badgeX/badgeY above).
+      const dx = x - badgeX;
+      const dy = y - badgeY;
+      const distFromCenter = Math.hypot(dx, dy);
+      if (distFromCenter < hubRadius) {
+        if (distFromCenter > 0.01) {
+          const push = hubRadius / distFromCenter;
+          x = badgeX + dx * push;
+          y = badgeY + dy * push;
+        } else {
+          // Point landed essentially exactly on the badge's axis — no
+          // stable direction to push along, so fall back to this tile's
+          // own fixed golden-angle bearing rather than have it jitter
+          // frame to frame.
+          const bearing = index * goldenAngle;
+          x = badgeX + Math.cos(bearing) * hubRadius;
+          y = badgeY + Math.sin(bearing) * hubRadius;
+        }
+      }
+    }
+    y += rise;
+    // Was 0.28 base / 0.46 depth swing / 0.36 flat add — back tiles floored
+    // at 0.34, bright enough to visually compete with the front cover sitting
+    // in front of them. Widened the swing so the back hemisphere goes quiet
+    // (front z=1 -> ~1.0, equator z=0 -> ~0.58, back z=-0.6 -> ~0.21).
+    const opacity = (0.16 + Math.max(point.z, -0.6) * 0.62 + 0.42) * eased;
     const roll = currentRotationZ * 0.08 + point.x * 6;
 
     node.style.transform = `translate3d(calc(-50% + ${x}px), calc(-50% + ${y}px), 0) scale(${scale}) rotate(${roll}deg)`;
@@ -404,8 +548,11 @@ const render = () => {
         if (distance > radius * 0.72 || averageDepth < -0.42) continue;
 
         const isActiveConnection = point.active || nextPoint.active;
+        // Alpha floor was 0.24/0.42 — with covers now ~30% bigger the web's
+        // exposed (non-occluded) segments read as clutter across the
+        // artwork at that floor. Dropped so the web stays a quiet backdrop.
         const alpha = Math.max(
-          isActiveConnection ? 0.42 : 0.24,
+          isActiveConnection ? 0.3 : 0.14,
           Math.min(0.88, (1.18 + averageDepth) * (1 - distance / (radius * 0.78)) * (isActiveConnection ? 0.82 : 0.6))
         ) * loadProgress;
 

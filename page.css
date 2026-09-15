@@ -200,11 +200,19 @@
 .hero-heading {
   font-weight: 900;
   font-stretch: 125%;
-  font-size: clamp(2.75rem, 7vw, 5.5rem);
+  /* Retyped for "TURNING MUSIC INTO / SOMETHING YOU CAN / <cycle word>". The
+     old clamp(2.75rem, 7vw, 5.5rem) couldn't fit "TURNING MUSIC INTO" (18
+     characters) on one line at any width, and its 2.75rem floor couldn't fit
+     the longest cycle word ("EXPERIENCE.") inside a phone-width line either
+     — which clips rather than wraps, since .line is overflow:hidden and the
+     cycling span below carries a reserved min-width. */
+  font-size: clamp(2.4rem, 6.2vw, 4.75rem);
   letter-spacing: -0.03em;
   line-height: 1.02;
   text-transform: uppercase;
-  max-width: 16ch;
+  /* Was 16ch (~975px) — narrower than the 18-character first line needs now.
+     Font-size against the container governs the break instead. */
+  max-width: none;
   color: var(--chrome);
 }
 
@@ -256,6 +264,7 @@
 }
 
 .impact-live-dot {
+  position: relative;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -272,7 +281,39 @@
   80% { opacity: 0.15; }
 }
 
+/* Ring — a continuous ripple pulsing out of the dot, independent of the
+   number flash below (that one stays a rare event; this is the ambient
+   "live" signal). Two copies staggered a half-cycle apart so a new ring
+   is always mid-expansion — never a bare dot with nothing moving. */
+.impact-live-dot::before,
+.impact-live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid var(--xst-red-hot);
+  box-shadow: 0 0 5px rgba(255, 43, 31, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  animation: impact-live-ring 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.impact-live-dot::after {
+  animation-delay: 1s;
+}
+
+/* Expo-out (steep at the start, a long unhurried settle) instead of the
+   old symmetric ease — reads as energy releasing outward and dissipating,
+   not a shape mechanically growing and shrinking on a timer. Border
+   thins as it goes, like the ring itself is running out of force. */
+@keyframes impact-live-ring {
+  0% { opacity: 0.65; transform: scale(1); border-width: 1.25px; }
+  100% { opacity: 0; transform: scale(4.5); border-width: 0.4px; }
+}
+
 .impact-total {
+  position: relative;
+  width: fit-content;
   font-weight: 900;
   font-stretch: 125%;
   font-size: clamp(2.5rem, 5vw, 3.5rem);
@@ -284,6 +325,100 @@
 
 .impact-total span {
   color: var(--xst-red);
+}
+
+/* Live-figure flash — mirrors Spotify for Artists' own "all-time streams ·
+   LIVE" readout, measured frame-by-frame off a recording of it: color
+   snaps to hot-red in a single frame (no ease-in), holds flat for 140ms,
+   then fades over ~480ms on a gentle decelerating curve — 620ms total.
+   Keyframes, not a transition: the motion is snap-hold-fade, a shape a
+   two-state transition can't express, and a class held for the animation's
+   full duration can't be interrupted mid-flight the way the old
+   transition-based version kept getting cut short by scene.js. Three
+   shadow layers instead of one flat blur — a tight core, a mid bloom, a
+   wide diffuse cast — is what actually reads as "glowing" rather than "a
+   blurred red smudge behind the text". Both the 0%/22.6% stop share the
+   same declarations only so the hold reads flat; 22.6% of 620ms = 140ms. */
+.impact-total.is-live-flash {
+  animation: impact-total-glow 620ms both;
+}
+
+.impact-total.is-live-flash span {
+  animation: impact-total-glow-accent 620ms both;
+}
+
+@keyframes impact-total-glow {
+  0%, 22.6% {
+    color: var(--xst-red-hot);
+    text-shadow:
+      0 0 4px rgba(255, 43, 31, 0.65),
+      0 0 16px rgba(255, 43, 31, 0.4),
+      0 0 44px rgba(255, 43, 31, 0.22);
+    animation-timing-function: cubic-bezier(0.25, 0.6, 0.4, 1);
+  }
+  100% {
+    color: var(--chrome);
+    text-shadow:
+      0 0 4px rgba(255, 43, 31, 0),
+      0 0 16px rgba(255, 43, 31, 0),
+      0 0 44px rgba(255, 43, 31, 0);
+  }
+}
+
+@keyframes impact-total-glow-accent {
+  0%, 22.6% {
+    color: var(--xst-red-hot);
+    animation-timing-function: cubic-bezier(0.25, 0.6, 0.4, 1);
+  }
+  100% {
+    color: var(--xst-red);
+  }
+}
+
+/* The number's own ring — measured off the same reference: it doesn't
+   appear with the flash, it appears 140ms in, right as the glow starts
+   fading, then expands from ~0.9em to ~5.3em and dissipates over 450ms so
+   it finishes in step with the glow. Peaks at a low ~0.45 opacity early
+   in its life (12%) and keeps growing while it fades — it's dissipating
+   energy, not a shape resizing. Centered with top/left/margin instead of
+   the inset trick above, so it stays a true circle regardless of how wide
+   the text box is. */
+.impact-total::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.9em;
+  height: 0.9em;
+  margin: -0.45em 0 0 -0.45em;
+  border-radius: 50%;
+  border: 1.25px solid var(--xst-red-hot);
+  filter: blur(0.4px);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(1);
+}
+
+.impact-total.is-live-flash::before {
+  animation: impact-total-ring 450ms 140ms cubic-bezier(0.25, 0.6, 0.4, 1) both;
+}
+
+@keyframes impact-total-ring {
+  0% { opacity: 0; transform: scale(1); border-width: 1.25px; }
+  12% { opacity: 0.45; transform: scale(1.7); border-width: 1.1px; }
+  100% { opacity: 0; transform: scale(5.3); border-width: 0.4px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .impact-total.is-live-flash,
+  .impact-total.is-live-flash span,
+  .impact-total.is-live-flash::before {
+    animation: none;
+  }
+  .impact-live-dot::before,
+  .impact-live-dot::after {
+    animation: none;
+  }
 }
 
 .impact-caption {
@@ -316,6 +451,14 @@
   font-size: clamp(1.4rem, 2.2vw, 1.85rem);
   letter-spacing: -0.02em;
   color: var(--chrome);
+}
+
+/* The other two stats are short numerals; this one is a title, so the
+   shared clamp(1.4rem, 2.2vw, 1.85rem) wraps it across three lines in a
+   1fr grid column. Scale it down and let it sit on one line instead. */
+.impact-stat-value--title {
+  font-size: clamp(0.95rem, 1.35vw, 1.2rem);
+  white-space: nowrap;
 }
 
 .impact-stat-label {
