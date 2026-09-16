@@ -230,7 +230,7 @@
       <section class="section artists" id="artists" aria-label="Artists on the roster">
         <div class="container artists-head">
           <p class="panel-eyebrow">Selected collaborations</p>
-          <h2 class="panel-title">Artists on the <span class="accent-outline">roster.</span></h2>
+          <h2 class="panel-title">Artists on the <span class="accent-gradient">roster.</span></h2>
         </div>
 
         <div class="labels-ticker" aria-label="Labels XST has worked with">
@@ -277,7 +277,7 @@
     </main>
 
     <!-- Detail overlay (cover lightbox — stays an overlay so opening a cover never moves you off the page) -->
-    <section class="overlay detail-overlay" id="detailOverlay" aria-hidden="true" aria-labelledby="detailTitle">
+    <section class="overlay detail-overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="detailTitle">
       <button type="button" class="overlay-close" data-close="detail">Close</button>
       <div class="detail-body">
         <div class="detail-art">
@@ -400,6 +400,7 @@
           root.classList.remove("is-loading");
           root.classList.add("is-ready");
           if (window.xstWordCycle) window.xstWordCycle(".hero-heading");
+          document.dispatchEvent(new CustomEvent("xst:hero-ready"));
         }
 
         // Wait for both signals — fonts settled AND the depixelating mark

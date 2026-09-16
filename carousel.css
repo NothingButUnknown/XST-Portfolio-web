@@ -66,11 +66,13 @@
   font-size: clamp(1.15rem, 2.4vw, 1.7rem);
   letter-spacing: 0.01em;
   text-transform: uppercase;
-  /* Was color:transparent + a 1px stroke at --hairline-strong (24% white) on
-     a #060606 ground — effectively invisible. This row is social proof; it
-     has to read at a glance, not on hover. Solid fill, one step under the
-     headline's full white. */
-  color: rgba(220, 221, 225, 0.86);
+  /* Hollow by default, fills solid on hover. An earlier attempt at this used
+     a stroke at --hairline-strong (24% white) and read as effectively
+     invisible; this one strokes at the same near-full opacity the filled
+     state used to sit at, so the outline alone still reads as social proof
+     at a glance — hover just confirms it. */
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(220, 221, 225, 0.86);
   white-space: nowrap;
   user-select: none;
   transition: color 0.25s ease;

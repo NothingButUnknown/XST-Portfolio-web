@@ -1,9 +1,10 @@
 // ---------- hero payoff-word cycler ----------
-// Cycles the last word of the hero headline through a placeholder list,
-// reproducing the swap motion measured off Fixing/2026-09-11 21-12-01.mp4:
-// old word cuts out instantly, new word fades in over ~230ms with zero
-// movement, holds ~2.5s, repeats. One moving thing in the hero — no slide,
-// no blur, no stagger.
+// Cycles the last word of the hero headline through a placeholder list.
+// Old word cuts out instantly, new word settles in over ~320ms (fade +
+// a short rise, same --ease curve as the line reveal above it) so the
+// metallic fill (see --metal-cycle) reads as catching light on the way
+// in rather than just switching on. Holds ~2.5s, repeats. One moving
+// thing in the hero — no slide, no blur, no stagger.
 //
 // data-cycle="word|word|word" (pipe-separated) on the same heading that
 // carries data-split-lines / data-accent. The FIRST word must match the
@@ -13,8 +14,9 @@
 
 (function () {
   var HOLD_MS = 2500;
-  var FADE_MS = 230;
+  var FADE_MS = 320;
   var FIRST_DELAY_MS = 1200;
+  var EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 
   function reducedMotion() {
     return (
@@ -102,13 +104,16 @@
       i = (i + 1) % words.length;
       span.style.transition = "none";
       span.style.opacity = "0";
+      span.style.transform = "translateY(6px)";
       span.textContent = words[i];
       // Force a reflow so the transition below doesn't get coalesced with
-      // the opacity:0 set above.
+      // the opacity:0/transform set above.
       void span.offsetWidth;
       requestAnimationFrame(function () {
-        span.style.transition = "opacity " + FADE_MS + "ms ease-out";
+        span.style.transition =
+          "opacity " + FADE_MS + "ms " + EASE + ", transform " + FADE_MS + "ms " + EASE;
         span.style.opacity = "1";
+        span.style.transform = "translateY(0)";
       });
     }
 

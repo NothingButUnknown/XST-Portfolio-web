@@ -694,7 +694,13 @@
    and .line's overflow clips it instead of just reflowing. */
 .hero-heading .is-cycling {
   display: inline-block;
-  will-change: opacity;
+  will-change: opacity, transform;
+  background-image: var(--metal-cycle);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
 }
 
 /* ============================================================

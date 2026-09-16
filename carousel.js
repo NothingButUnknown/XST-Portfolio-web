@@ -118,6 +118,11 @@
       const title = document.createElement("p");
       title.className = "artist-card-title";
       title.textContent = artist.name || "";
+      // Name is clipped with an ellipsis at this card width (e.g. "Tropa do
+      // Chrome") — the native title tooltip is the only way a sighted mouse
+      // user recovers the full text; aria-label on the card already covers
+      // screen readers.
+      if (artist.name) title.title = artist.name;
       caption.appendChild(title);
 
       const stat = document.createElement("p");

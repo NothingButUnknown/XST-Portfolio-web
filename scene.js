@@ -880,6 +880,7 @@ const thumbs = catalogue.map((item, index) => {
   img.src = `assets/covers/thumb/${item.file}`;
   img.tabIndex = 0;
   img.setAttribute("role", "option");
+  img.setAttribute("aria-label", item.title || `Untitled — ${item.id}`);
   img.addEventListener("click", () => openDetail(index));
   img.addEventListener("keydown", (event) => {
     if (event.key === "Enter" || event.key === " ") {
@@ -907,6 +908,41 @@ function closeOverlay(name) {
   overlay.setAttribute("aria-hidden", "true");
   lastFocusedNode?.focus();
 }
+
+// Keeps Tab/Shift+Tab cycling inside whichever overlay is open instead of
+// leaking into the page underneath — the overlay visually covers the whole
+// viewport (see .overlay in styles.css), but without this the rest of the
+// page (nav, sphere, footer) stays in the natural tab order behind it, so a
+// keyboard user could tab focus onto controls they can't see.
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"]), input, select, textarea, iframe';
+
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Tab") return;
+  const openOverlayEl = Object.values(overlays).find((overlay) =>
+    overlay?.classList.contains("is-open")
+  );
+  if (!openOverlayEl) return;
+
+  const focusable = [...openOverlayEl.querySelectorAll(FOCUSABLE_SELECTOR)].filter(
+    (el) => el.offsetParent !== null
+  );
+  if (!focusable.length) return;
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  } else if (!openOverlayEl.contains(document.activeElement)) {
+    event.preventDefault();
+    first.focus();
+  }
+});
 
 // The footer's flickering grid + letter-magnify effect used to start/stop
 // with the contact overlay opening and closing; now they run whenever the
@@ -996,7 +1032,10 @@ function openDetail(index) {
     spotifyId: item.spotifyId || "",
   });
 
-  thumbs.forEach((thumb, i) => thumb.classList.toggle("is-active", i === index));
+  thumbs.forEach((thumb, i) => {
+    thumb.classList.toggle("is-active", i === index);
+    thumb.setAttribute("aria-selected", String(i === index));
+  });
 
   // Stepping with the prev/next arrows swaps the content in place — only a
   // fresh open (from the sphere or filmstrip) should re-focus and re-animate
@@ -1119,21 +1158,37 @@ if (cursorDot && finePointer && !reduceMotion) {
   renderCursor();
 }
 
-// ---------- work-title hover magnify (mouse-with-hover devices only) ----------
+// ---------- letter hover magnify (mouse-with-hover devices only) ----------
 //
-// Splits the contact overlay's big display line into per-glyph spans so a
-// pointer-distance scale can ride on top of it — dock-style magnification,
-// only running while the contact overlay is open.
+// Splits a heading's text into per-glyph spans so a pointer-distance scale
+// can ride on top of it — dock-style magnification. Shared by the footer's
+// "Let's work together.", the "Catalog impact" eyebrow, and the hero
+// headline. wrapLetters() is idempotent (skips text already under a
+// .letter span) so it's safe to call again after something downstream
+// (word-cycle.js) drops fresh plain text into the subtree.
 
-const workTitle = document.querySelector(".work-title");
-
-if (workTitle) {
-  const walker = document.createTreeWalker(workTitle, NodeFilter.SHOW_TEXT);
+function wrapLetters(container) {
+  if (!container) return;
+  const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
   const textNodes = [];
-  while (walker.nextNode()) textNodes.push(walker.currentNode);
-  textNodes.forEach((node) => {
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node.parentNode?.classList?.contains("letter")) continue;
+    // The cycling payoff word (word-cycle.js) paints one continuous diagonal
+    // shine across its own full text run via background-clip:text. Splitting
+    // that into per-letter spans gives each letter its own copy of the
+    // gradient instead of one sweep across the word — reads as a repeated
+    // white streak/barcode rather than a single blended highlight. Leave it
+    // as plain text; it already animates on its own each swap.
+    if (node.parentNode?.classList?.contains("cycle-word")) continue;
+    // Skip nodes with no non-space character — rewrapping these is a no-op
+    // that would still trigger a childList mutation for nothing.
+    if (![...node.textContent].some((char) => char !== " ")) continue;
+    textNodes.push(node);
+  }
+  textNodes.forEach((textNode) => {
     const frag = document.createDocumentFragment();
-    [...node.textContent].forEach((char) => {
+    [...textNode.textContent].forEach((char) => {
       if (char === " ") {
         frag.appendChild(document.createTextNode(" "));
         return;
@@ -1143,21 +1198,17 @@ if (workTitle) {
       span.textContent = char;
       frag.appendChild(span);
     });
-    node.replaceWith(frag);
+    textNode.replaceWith(frag);
   });
 }
 
-const letterMagnet = (() => {
-  if (!workTitle || !finePointer || reduceMotion) return null;
-  const letters = [...workTitle.querySelectorAll(".letter")];
-  if (!letters.length) return null;
+function createLetterMagnet(container, options) {
+  if (!container || !finePointer || reduceMotion) return null;
+  const RADIUS = options?.radius ?? 120;
+  const MAX_SCALE = options?.maxScale ?? 1.28;
+  const EASE = options?.ease ?? 0.16;
 
-  const RADIUS = 120;
-  const MAX_SCALE = 1.28;
-  const EASE = 0.16;
-
-  const current = letters.map(() => 1);
-  const target = letters.map(() => 1);
+  const scaleByLetter = new WeakMap();
   let pointerX = null;
   let pointerY = null;
   let rafId = null;
@@ -1172,18 +1223,23 @@ const letterMagnet = (() => {
   };
 
   const tick = () => {
-    letters.forEach((el, i) => {
+    container.querySelectorAll(".letter").forEach((el) => {
+      let entry = scaleByLetter.get(el);
+      if (!entry) {
+        entry = { current: 1, target: 1 };
+        scaleByLetter.set(el, entry);
+      }
       if (pointerX === null) {
-        target[i] = 1;
+        entry.target = 1;
       } else {
         const rect = el.getBoundingClientRect();
         const dx = pointerX - (rect.left + rect.width / 2);
         const dy = pointerY - (rect.top + rect.height / 2);
         const falloff = Math.max(0, 1 - Math.hypot(dx, dy) / RADIUS);
-        target[i] = 1 + falloff * falloff * (MAX_SCALE - 1);
+        entry.target = 1 + falloff * falloff * (MAX_SCALE - 1);
       }
-      current[i] += (target[i] - current[i]) * EASE;
-      el.style.transform = `scale(${current[i].toFixed(3)})`;
+      entry.current += (entry.target - entry.current) * EASE;
+      el.style.transform = `scale(${entry.current.toFixed(3)})`;
     });
     rafId = requestAnimationFrame(tick);
   };
@@ -1191,22 +1247,96 @@ const letterMagnet = (() => {
   return {
     start() {
       document.addEventListener("pointermove", onMove);
-      workTitle.addEventListener("pointerleave", onLeave);
+      container.addEventListener("pointerleave", onLeave);
       if (!rafId) rafId = requestAnimationFrame(tick);
     },
     stop() {
       document.removeEventListener("pointermove", onMove);
-      workTitle.removeEventListener("pointerleave", onLeave);
+      container.removeEventListener("pointerleave", onLeave);
       if (rafId) cancelAnimationFrame(rafId);
       rafId = null;
       pointerX = null;
       pointerY = null;
-      letters.forEach((el) => {
+      container.querySelectorAll(".letter").forEach((el) => {
         el.style.transform = "";
       });
     },
   };
-})();
+}
+
+const workTitle = document.querySelector(".work-title");
+wrapLetters(workTitle);
+const letterMagnet = createLetterMagnet(workTitle);
+
+// "Catalog impact" eyebrow only — the "Cover art" eyebrow further down
+// keeps the plain static look. Sits in the always-visible hero, so it
+// just runs from load rather than waiting on a scroll observer.
+const impactEyebrow = document.querySelector(".impact-lead-head .section-eyebrow");
+wrapLetters(impactEyebrow);
+const impactEyebrowMagnet = createLetterMagnet(impactEyebrow);
+impactEyebrowMagnet?.start();
+
+// Same treatment for the panel's other headers — the per-stat labels
+// ("Covers shipped" / "Best-performing cover..." / "Average per cover").
+// Static text, no runtime rewrites, so wrap once and go.
+document.querySelectorAll(".impact-stat-label").forEach((label) => {
+  wrapLetters(label);
+  createLetterMagnet(label)?.start();
+});
+
+// Hero headline — has to wait for lines.js (per-line split) and
+// word-cycle.js (payoff-word rotator) to finish setting up the DOM first,
+// otherwise wrapping letters now gets wiped the moment either of those
+// rebuilds the heading. index.html dispatches "xst:hero-ready" right after
+// both have run. wrapLetters() itself skips the cycling payoff word (see
+// its "cycle-word" check above), so nothing here needs to re-run later.
+const heroHeading = document.querySelector(".hero-heading");
+if (heroHeading) {
+  document.addEventListener(
+    "xst:hero-ready",
+    () => {
+      wrapLetters(heroHeading);
+      createLetterMagnet(heroHeading)?.start();
+
+      // The cycling payoff word's box is min-width-locked to the WIDEST
+      // variant (word-cycle.js's reserveWidth) so swapping to a longer word
+      // never reflows the line — but that means every word, short or long,
+      // sits in the same fixed-width box. --metal-cycle's background-image
+      // stretches to that box (background-size:100% 100%), so a short word
+      // like "see." only ever shows the image's dark left edge; the bright
+      // band further along the image never falls under its glyphs. Size the
+      // background to each word's own rendered width instead so the full
+      // image sweep — dark to bright to dark — always lands on the text.
+      const cycleWord = heroHeading.querySelector(".cycle-word");
+      if (cycleWord) {
+        const sizeSheenToWord = () => {
+          const probe = cycleWord.cloneNode(false);
+          probe.style.position = "absolute";
+          probe.style.visibility = "hidden";
+          probe.style.left = "-9999px";
+          probe.style.minWidth = "0";
+          probe.style.display = "inline-block";
+          probe.textContent = cycleWord.textContent;
+          // Appended inside heroHeading, not document.body — font-size,
+          // font-weight, text-transform and letter-spacing all come from
+          // .hero-heading via inheritance, so measuring outside that
+          // subtree gives back the tiny default-font width instead of the
+          // real rendered glyph width.
+          heroHeading.appendChild(probe);
+          const width = probe.getBoundingClientRect().width;
+          probe.remove();
+          if (width > 0) {
+            cycleWord.style.backgroundSize = `${Math.ceil(width)}px 100%`;
+            cycleWord.style.backgroundPosition = "left center";
+          }
+        };
+        sizeSheenToWord();
+        new MutationObserver(sizeSheenToWord).observe(cycleWord, { childList: true });
+      }
+    },
+    { once: true }
+  );
+}
 
 // ---------- easter egg: hold the wordmark to spray the catalogue ----------
 //

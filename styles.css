@@ -17,6 +17,13 @@
      80% lands on the baseline, so the fade completes exactly at the
      letterform's foot instead of running on into the descender space. */
   --fade-type: linear-gradient(180deg, var(--chrome) 16%, var(--art-deep) 80%);
+  /* Metallic sheen for the hero's cycling payoff word — brushed RED steel,
+     not brushed chrome: a generated brushed-metal photo (deep black into
+     oxblood red into one soft diagonal red-hot/near-white highlight, same
+     palette as --art-deep/--xst-red/--xst-red-hot) clipped to the text
+     instead of a CSS gradient — the highlight reads as one continuous
+     photographic sheen rather than a flat computed band. */
+  --metal-cycle: url("assets/hero-cycle-shine.png");
   --hairline: rgba(220, 221, 225, 0.12);
   --hairline-strong: rgba(220, 221, 225, 0.24);
   --dur: 0.62s;
@@ -903,7 +910,10 @@ a {
   text-transform: uppercase;
 }
 
-.work-title .letter {
+.work-title .letter,
+.hero-heading .letter,
+.impact-lead-head .section-eyebrow .letter,
+.impact-stat-label .letter {
   display: inline-block;
   transform-origin: 50% 60%;
   will-change: transform;
@@ -942,6 +952,15 @@ a {
   font-weight: 900;
   color: transparent;
   -webkit-text-stroke: 1.5px rgba(220, 221, 225, 0.55);
+}
+
+/* Same face as .panel-title (inherits Archivo) — only the fill changes. */
+.accent-gradient {
+  background: linear-gradient(100deg, #fff 0%, #fff 30%, var(--xst-red-hot) 65%, var(--xst-red) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .accent-italic {
