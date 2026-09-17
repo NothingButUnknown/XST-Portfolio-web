@@ -28,10 +28,16 @@
     <script>
       (function () {
         var root = document.documentElement;
-        root.classList.add("is-loading", "is-first-load");
-        // The depixelating mark plays every load — first visit and every
-        // refresh — so it's always armed, not gated behind a "seen it
-        // already" flag.
+        root.classList.add("is-loading");
+        // The mosaic loader is an arrival moment, not a per-load animation:
+        // a reload or a back/forward restore skips it and goes straight to
+        // the intro fades below. Browsers without the navigation timing
+        // entry fall through to showing it, which is the safe default.
+        var nav =
+          performance.getEntriesByType &&
+          performance.getEntriesByType("navigation")[0];
+        var repeat = nav && (nav.type === "reload" || nav.type === "back_forward");
+        if (!repeat) root.classList.add("is-first-load");
       })();
     </script>
   </head>
@@ -57,7 +63,12 @@
     <script>
       (function () {
         var root = document.documentElement;
-        if (!root.classList.contains("is-first-load")) return;
+        if (!root.classList.contains("is-first-load")) {
+          window.xstLoaderDone = true;
+          var skipped = document.getElementById("loader");
+          if (skipped) skipped.remove();
+          return;
+        }
 
         var loader = document.getElementById("loader");
         var canvas = document.getElementById("loaderMark");
@@ -103,6 +114,7 @@
           done = true;
           draw(1);
           loader.classList.add("is-done");
+          window.xstLoaderDone = true;
           document.dispatchEvent(new CustomEvent("xst:loader-done"));
           setTimeout(function () {
             loader.remove();
@@ -361,26 +373,46 @@
       ]
     </script>
 
-    <!-- PLACEHOLDER roster — Calen sends the real names, photos, and credits
-         later. Swap every "name"/"role"/"note"/"img" below for the real
-         thing before this site goes public; a fabricated roster reads as a
-         lie on a real portfolio. -->
+    <!-- Real roster — 21 artists, names + photos pulled from their Spotify
+         artist profiles (Spotify oEmbed, matched by artist ID, verified
+         against Calen's list). "role" is generic for all 21 pending real
+         credits from Calen. "note" is only filled where the artist is
+         actually credited in #catalogue above — left blank rather than
+         invented for the rest. -->
     <script type="application/json" id="artistsData">
       [
-        { "name": "MC Fenix", "role": "Recording artist · Funk carioca", "note": "3 cover drops, 2024–2025", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=MC+Fenix" },
-        { "name": "Bianca Rae", "role": "Vocalist · R&B", "note": "Single artwork + rollout banners", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Bianca+Rae" },
-        { "name": "DJ Vortex", "role": "Producer / DJ · Trap", "note": "EP cover + tour poster set", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=DJ+Vortex" },
-        { "name": "Kaio Blitz", "role": "Recording artist · Montagem", "note": "Ongoing cover series, 6 drops", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Kaio+Blitz" },
-        { "name": "Tropa do Chrome", "role": "Group · Funk", "note": "Full visual identity + logo", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Tropa" },
-        { "name": "Noa Prisma", "role": "Singer-songwriter · Pop", "note": "Album cover, 2025", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Noa+Prisma" },
-        { "name": "Rafa Ximétrica", "role": "Producer · Montagem", "note": "2 cover drops + Instagram banners", "img": "https://placehold.co/400x400/0d0d0f/e01b1b?text=Rafa+X" }
+        { "name": "LXNGVX", "role": "Recording artist", "note": "Cover art · Marola, Agora Vem", "img": "assets/artists/lxngvx.jpg" },
+        { "name": "Nakama", "role": "Recording artist", "note": "", "img": "assets/artists/nakama.jpg" },
+        { "name": "ZAYLO", "role": "Recording artist", "note": "", "img": "assets/artists/zaylo.jpg" },
+        { "name": "AVARU", "role": "Recording artist", "note": "Cover art · Sunmomi", "img": "assets/artists/avaru.jpg" },
+        { "name": "ZMAJOR", "role": "Recording artist", "note": "Cover art · 3 drops", "img": "assets/artists/zmajor.jpg" },
+        { "name": "-Prey", "role": "Recording artist", "note": "Cover art · Confess Your Love Funk", "img": "assets/artists/prey.jpg" },
+        { "name": "NXGHT!", "role": "Recording artist", "note": "Cover art · 2 drops", "img": "assets/artists/nxght.jpg" },
+        { "name": "SCHWVFTY", "role": "Recording artist", "note": "", "img": "assets/artists/schwvfty.jpg" },
+        { "name": "fennecxx", "role": "Recording artist", "note": "", "img": "assets/artists/fennecxx.jpg" },
+        { "name": "SEKIMANE", "role": "Recording artist", "note": "", "img": "assets/artists/sekimane.jpg" },
+        { "name": "KREZUS", "role": "Recording artist", "note": "Cover art · Montagem Interzone", "img": "assets/artists/krezus.jpg" },
+        { "name": "Scythermane", "role": "Recording artist", "note": "", "img": "assets/artists/scythermane.jpg" },
+        { "name": "Ariis", "role": "Recording artist", "note": "", "img": "assets/artists/ariis.jpg" },
+        { "name": "sma$her", "role": "Recording artist", "note": "", "img": "assets/artists/sma-her.jpg" },
+        { "name": "JXNDRO", "role": "Recording artist", "note": "", "img": "assets/artists/jxndro.jpg" },
+        { "name": "cape", "role": "Recording artist", "note": "", "img": "assets/artists/cape.jpg" },
+        { "name": "SUNJI", "role": "Recording artist", "note": "Cover art · 4 drops", "img": "assets/artists/sunji.jpg" },
+        { "name": "2KE", "role": "Recording artist", "note": "", "img": "assets/artists/2ke.jpg" },
+        { "name": "DJ Javi26", "role": "Recording artist", "note": "", "img": "assets/artists/dj-javi26.jpg" },
+        { "name": "Irokz", "role": "Recording artist", "note": "", "img": "assets/artists/irokz.jpg" },
+        { "name": "KPHK", "role": "Recording artist", "note": "", "img": "assets/artists/kphk.jpg" }
       ]
     </script>
 
-    <!-- PLACEHOLDER labels — same deal as #artistsData above. -->
+    <!-- Real label list from Calen — 22 labels XST has worked with. -->
     <script type="application/json" id="labelsData">
       [
-        "Intertone", "Epsile", "Sunday", "ScarScheme", "Rylaris", "Polaris", "GRYND", "Punisher", "Enarma", "Citadel"
+        "NCS", "Tribal Trap", "Polaris Records", "Rubix Records", "INTERTONE",
+        "Black17 Media", "Rylaris Music Group", "PRIME ERA", "Berserk Records",
+        "Sketch Music", "MIDNIGHT SHADOW MEDIA", "Zime Media", "ScarScheme Records",
+        "99eyes Entertainment", "Bear Catalogues", "Cresta La Cultura", "Launch13",
+        "MDR", "void", "broke", "0to8", "XST Creative Group"
       ]
     </script>
 
@@ -391,7 +423,7 @@
         var root = document.documentElement;
         var done = false;
         var fontsReady = false;
-        var loaderDone = false;
+        var loaderDone = window.xstLoaderDone === true;
 
         function reveal() {
           if (done) return;

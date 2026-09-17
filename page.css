@@ -706,8 +706,10 @@
 /* ============================================================
    first-load screen — the XST mark resolving out of a coarse
    pixel mosaic. Only exists in the DOM's first paint when
-   html.is-first-load was set by the inline head script (i.e. the
-   first tab load this session); a refresh never sees it.
+   html.is-first-load was set by the inline head script, which
+   checks performance.getEntriesByType('navigation')[0].type and
+   skips the class on "reload" or "back_forward" — so a refresh
+   or back/forward restore never sees it, only a genuine arrival.
    ============================================================ */
 
 .loader {
