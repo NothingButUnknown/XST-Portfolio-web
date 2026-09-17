@@ -16,14 +16,31 @@
      box (font ascent->descent, ~1.12em for Archivo): 16% lands on cap-top,
      80% lands on the baseline, so the fade completes exactly at the
      letterform's foot instead of running on into the descender space. */
-  --fade-type: linear-gradient(180deg, var(--chrome) 16%, var(--art-deep) 80%);
+  --fade-type: linear-gradient(180deg, var(--chrome) 0%, var(--xst-red) 55%, var(--art-deep) 100%);
   /* Metallic sheen for the hero's cycling payoff word — brushed RED steel,
-     not brushed chrome: a generated brushed-metal photo (deep black into
-     oxblood red into one soft diagonal red-hot/near-white highlight, same
-     palette as --art-deep/--xst-red/--xst-red-hot) clipped to the text
-     instead of a CSS gradient — the highlight reads as one continuous
-     photographic sheen rather than a flat computed band. */
-  --metal-cycle: url("assets/hero-cycle-shine.png");
+     not brushed chrome. Was a generated brushed-metal photo clipped to the
+     text; the photo's single hard-edged highlight didn't hold up once
+     stretched to fit words of very different widths (100% 100% squashes
+     it unevenly per word, crushing the soft blur into a flat streak with
+     nowhere for the eye to rest). A CSS gradient scales cleanly at any
+     aspect ratio and the 7 stops below take ~40% of the run just to climb
+     from oxblood to the near-white core and another ~35% to fall back out,
+     so the highlight reads as a slow catch of light, not a seam. --metal-
+     hi stays warm (never pure #fff) so it never clashes hue-cold against
+     the red either side of it. */
+  --metal-hi: #ffe4d6;
+  --metal-cycle: linear-gradient(
+    112deg,
+    var(--art-deep) 0%,
+    #5c0b0e 16%,
+    var(--xst-red) 34%,
+    var(--xst-red-hot) 47%,
+    var(--metal-hi) 58%,
+    var(--xst-red-hot) 69%,
+    var(--xst-red) 84%,
+    #4a090c 96%,
+    var(--art-deep) 100%
+  );
   --hairline: rgba(220, 221, 225, 0.12);
   --hairline-strong: rgba(220, 221, 225, 0.24);
   --dur: 0.62s;
@@ -107,6 +124,7 @@ a {
   background: url("assets/art-wash.webp") center / cover no-repeat;
   opacity: 0.1;
   pointer-events: none;
+  filter: saturate(1.5);
 }
 
 .art-grain {
@@ -979,9 +997,10 @@ a {
 
 .accent-italic.is-brand,
 .accent-italic.is-brand .letter {
-  background: linear-gradient(180deg, var(--xst-red-hot) 0%, var(--xst-red) 100%);
+  background: linear-gradient(180deg, #ff5940 0%, #ff0a0a 100%);
   -webkit-background-clip: text;
   background-clip: text;
+  filter: drop-shadow(0 0 22px rgba(255, 30, 20, 0.45));
 }
 
 /* Third voice — same Archivo grotesque as the rest of the line, just
@@ -1058,6 +1077,13 @@ a {
 
 .work-handle:hover {
   color: var(--xst-red);
+}
+
+.work-legal {
+  margin-top: 1.5rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  color: var(--chrome-dim);
 }
 
 /* ---------- responsive ---------- */

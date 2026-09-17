@@ -9,6 +9,7 @@
 
 .section {
   padding: clamp(6rem, 12vh, 9rem) 0;
+  filter: saturate(1.5);
 }
 
 .container {
@@ -49,6 +50,7 @@
   border: 1px solid transparent;
   background: transparent;
   box-shadow: none;
+  filter: saturate(1.5);
   transition: max-width var(--dur) var(--ease), height var(--dur) var(--ease),
     margin var(--dur) var(--ease), padding var(--dur) var(--ease),
     background var(--dur) var(--ease), border-color var(--dur) var(--ease),
@@ -323,8 +325,43 @@
   margin-top: 0.6rem;
 }
 
-.impact-total span {
+.impact-total .impact-total-plus {
   color: var(--xst-red);
+}
+
+/* Sliding-number digit columns — ported from a React/motion component
+   (see sliding-number.js). Each place value is a fixed 1ch column with
+   all ten numerals stacked absolutely inside it; a spring per column
+   translates the correct one into view and wraps around 9→0 the short
+   way instead of scrolling back through 8,7,6... tabular-nums is what
+   makes the 1ch width actually match the digit glyphs — without it the
+   column jitters narrower/wider as the digit changes. */
+.sliding-number {
+  display: inline-flex;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.sliding-digit {
+  position: relative;
+  display: inline-block;
+  width: 1ch;
+  overflow-x: visible;
+  overflow-y: clip;
+  line-height: 1;
+}
+
+.sliding-digit-spacer {
+  visibility: hidden;
+}
+
+.sliding-digit-numeral {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
 }
 
 /* Live-figure flash — mirrors Spotify for Artists' own "all-time streams ·
@@ -343,7 +380,7 @@
   animation: impact-total-glow 620ms both;
 }
 
-.impact-total.is-live-flash span {
+.impact-total.is-live-flash .impact-total-plus {
   animation: impact-total-glow-accent 620ms both;
 }
 
@@ -432,7 +469,7 @@
 .impact-stats {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: clamp(1.25rem, 2.5vw, 2rem);
   border-left: 1px solid var(--hairline);
   padding-left: clamp(2rem, 5vw, 3.5rem);
@@ -574,6 +611,7 @@
   justify-content: center;
   align-items: center;
   border-top: 1px solid var(--hairline);
+  filter: brightness(1.15) saturate(2.85);
 }
 
 /* Faint lift at the very bottom of the page — echoes the hero's glow one
@@ -695,9 +733,20 @@
 .hero-heading .is-cycling {
   display: inline-block;
   will-change: opacity, transform;
-  background-image: var(--metal-cycle);
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
+  /* Three layers: a turbulence grain (overlay blend — fine brushed noise),
+     a dark radial vignette (multiply blend) that eats the word's own
+     corners so the ends dissolve into --void instead of sitting on it as
+     a hard-edged cutout, and the --metal-cycle gradient itself underneath.
+     Being a gradient (not the raster photo this used to be), it scales
+     cleanly at any word's box ratio with no distortion, so 100% 100% is
+     safe here — no `cover` workaround needed. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(130% 160% at 50% 45%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 32%, rgba(0, 0, 0, 0.55) 74%, rgba(0, 0, 0, 0.9) 100%),
+    var(--metal-cycle);
+  background-size: 96px 96px, 100% 100%, 100% 100%;
+  background-position: center, center, center;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-blend-mode: overlay, multiply, normal;
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;

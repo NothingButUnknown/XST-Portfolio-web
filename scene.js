@@ -13,7 +13,7 @@ const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 const catalogue = JSON.parse(document.querySelector("#catalogue").textContent);
 
 // ---------- stream counts ----------
-// Catalog impact numbers (#impactTotal/#impactCovers/#impactBest/#impactAvg)
+// Catalog impact numbers (#impactTotal/#impactCovers/#impactBest)
 // are now hand-typed real figures straight in index.html — Calen sent them,
 // so this no longer derives them from catalogue[i].streams at runtime.
 
@@ -1277,8 +1277,8 @@ const impactEyebrowMagnet = createLetterMagnet(impactEyebrow);
 impactEyebrowMagnet?.start();
 
 // Same treatment for the panel's other headers — the per-stat labels
-// ("Covers shipped" / "Best-performing cover..." / "Average per cover").
-// Static text, no runtime rewrites, so wrap once and go.
+// ("Covers shipped" / "Best-performing cover..."). Static text, no
+// runtime rewrites, so wrap once and go.
 document.querySelectorAll(".impact-stat-label").forEach((label) => {
   wrapLetters(label);
   createLetterMagnet(label)?.start();
