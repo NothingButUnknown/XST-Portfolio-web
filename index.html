@@ -372,33 +372,34 @@
 
     <!-- Real roster — 21 artists, names + photos pulled from their Spotify
          artist profiles (Spotify oEmbed, matched by artist ID, verified
-         against Calen's list). "role" is generic for all 21 pending real
-         credits from Calen. "note" is only filled where the artist is
-         actually credited in #catalogue above — left blank rather than
-         invented for the rest. -->
+         against Calen's list). "spotify" is that same verified artist URL
+         (see scripts/fetch-artists.mjs) — the card links straight to it.
+         "role" is generic for all 21 pending real credits from Calen. "note"
+         is only filled where the artist is actually credited in #catalogue
+         above — left blank rather than invented for the rest. -->
     <script type="application/json" id="artistsData">
       [
-        { "name": "LXNGVX", "role": "Recording artist", "note": "Cover art · Marola, Agora Vem", "img": "assets/artists/lxngvx.jpg" },
-        { "name": "Nakama", "role": "Recording artist", "note": "", "img": "assets/artists/nakama.jpg" },
-        { "name": "ZAYLO", "role": "Recording artist", "note": "", "img": "assets/artists/zaylo.jpg" },
-        { "name": "AVARU", "role": "Recording artist", "note": "Cover art · Sunmomi", "img": "assets/artists/avaru.jpg" },
-        { "name": "ZMAJOR", "role": "Recording artist", "note": "Cover art · 3 drops", "img": "assets/artists/zmajor.jpg" },
-        { "name": "-Prey", "role": "Recording artist", "note": "Cover art · Confess Your Love Funk", "img": "assets/artists/prey.jpg" },
-        { "name": "NXGHT!", "role": "Recording artist", "note": "Cover art · 2 drops", "img": "assets/artists/nxght.jpg" },
-        { "name": "SCHWVFTY", "role": "Recording artist", "note": "", "img": "assets/artists/schwvfty.jpg" },
-        { "name": "fennecxx", "role": "Recording artist", "note": "", "img": "assets/artists/fennecxx.jpg" },
-        { "name": "SEKIMANE", "role": "Recording artist", "note": "", "img": "assets/artists/sekimane.jpg" },
-        { "name": "KREZUS", "role": "Recording artist", "note": "Cover art · Montagem Interzone", "img": "assets/artists/krezus.jpg" },
-        { "name": "Scythermane", "role": "Recording artist", "note": "", "img": "assets/artists/scythermane.jpg" },
-        { "name": "Ariis", "role": "Recording artist", "note": "", "img": "assets/artists/ariis.jpg" },
-        { "name": "sma$her", "role": "Recording artist", "note": "", "img": "assets/artists/sma-her.jpg" },
-        { "name": "JXNDRO", "role": "Recording artist", "note": "", "img": "assets/artists/jxndro.jpg" },
-        { "name": "cape", "role": "Recording artist", "note": "", "img": "assets/artists/cape.jpg" },
-        { "name": "SUNJI", "role": "Recording artist", "note": "Cover art · 4 drops", "img": "assets/artists/sunji.jpg" },
-        { "name": "2KE", "role": "Recording artist", "note": "", "img": "assets/artists/2ke.jpg" },
-        { "name": "DJ Javi26", "role": "Recording artist", "note": "", "img": "assets/artists/dj-javi26.jpg" },
-        { "name": "Irokz", "role": "Recording artist", "note": "", "img": "assets/artists/irokz.jpg" },
-        { "name": "KPHK", "role": "Recording artist", "note": "", "img": "assets/artists/kphk.jpg" }
+        { "name": "LXNGVX", "role": "Recording artist", "note": "Cover art · Marola, Agora Vem", "img": "assets/artists/lxngvx.jpg", "spotify": "https://open.spotify.com/artist/5IpS1TN1Crp8Ym4zjiIrtK" },
+        { "name": "Nakama", "role": "Recording artist", "note": "", "img": "assets/artists/nakama.jpg", "spotify": "https://open.spotify.com/artist/1kd6WqngBvP0Vthu1sGI0j" },
+        { "name": "ZAYLO", "role": "Recording artist", "note": "", "img": "assets/artists/zaylo.jpg", "spotify": "https://open.spotify.com/artist/41rOXkwf7ccICwE9yRnEKi" },
+        { "name": "AVARU", "role": "Recording artist", "note": "Cover art · Sunmomi", "img": "assets/artists/avaru.jpg", "spotify": "https://open.spotify.com/artist/1cUF8H9TlmI5vckevO7Gh1" },
+        { "name": "ZMAJOR", "role": "Recording artist", "note": "Cover art · 3 drops", "img": "assets/artists/zmajor.jpg", "spotify": "https://open.spotify.com/artist/4nzcYFR90Ep4i3P6mlZSkP" },
+        { "name": "-Prey", "role": "Recording artist", "note": "Cover art · Confess Your Love Funk", "img": "assets/artists/prey.jpg", "spotify": "https://open.spotify.com/artist/3uA4unR7LBOcqjpbOeCs0Y" },
+        { "name": "NXGHT!", "role": "Recording artist", "note": "Cover art · 2 drops", "img": "assets/artists/nxght.jpg", "spotify": "https://open.spotify.com/artist/7lAaAGxYxk2GH8cMbTEwAL" },
+        { "name": "SCHWVFTY", "role": "Recording artist", "note": "", "img": "assets/artists/schwvfty.jpg", "spotify": "https://open.spotify.com/artist/5tZkYTy4jkyMRRdobi5isM" },
+        { "name": "fennecxx", "role": "Recording artist", "note": "", "img": "assets/artists/fennecxx.jpg", "spotify": "https://open.spotify.com/artist/5tvPbCrx8LMaL9Zby5e7c2" },
+        { "name": "SEKIMANE", "role": "Recording artist", "note": "", "img": "assets/artists/sekimane.jpg", "spotify": "https://open.spotify.com/artist/1yevH7mkPMXeSTnA9SwHvq" },
+        { "name": "KREZUS", "role": "Recording artist", "note": "Cover art · Montagem Interzone", "img": "assets/artists/krezus.jpg", "spotify": "https://open.spotify.com/artist/6S1GI59Xa6ClqYBqASQxjq" },
+        { "name": "Scythermane", "role": "Recording artist", "note": "", "img": "assets/artists/scythermane.jpg", "spotify": "https://open.spotify.com/artist/5dDNNq04RjKXFOADdHd6VX" },
+        { "name": "Ariis", "role": "Recording artist", "note": "", "img": "assets/artists/ariis.jpg", "spotify": "https://open.spotify.com/artist/09cKncAQn28NqTUORLMwSR" },
+        { "name": "sma$her", "role": "Recording artist", "note": "", "img": "assets/artists/sma-her.jpg", "spotify": "https://open.spotify.com/artist/1Fl1fc7bZfRVUCffh9Uudx" },
+        { "name": "JXNDRO", "role": "Recording artist", "note": "", "img": "assets/artists/jxndro.jpg", "spotify": "https://open.spotify.com/artist/62vwt2P3iBw4NwHdDZb27q" },
+        { "name": "cape", "role": "Recording artist", "note": "", "img": "assets/artists/cape.jpg", "spotify": "https://open.spotify.com/artist/6hB4Px9Gm2FjAB30PXsv8K" },
+        { "name": "SUNJI", "role": "Recording artist", "note": "Cover art · 4 drops", "img": "assets/artists/sunji.jpg", "spotify": "https://open.spotify.com/artist/0ju8Ftgs8pyGCOliHyGY8r" },
+        { "name": "2KE", "role": "Recording artist", "note": "", "img": "assets/artists/2ke.jpg", "spotify": "https://open.spotify.com/artist/2vPnS0IpayC2RVFuQA08R4" },
+        { "name": "DJ Javi26", "role": "Recording artist", "note": "", "img": "assets/artists/dj-javi26.jpg", "spotify": "https://open.spotify.com/artist/0JGZRsRtFTQ0ZVBq9b2ZEj" },
+        { "name": "Irokz", "role": "Recording artist", "note": "", "img": "assets/artists/irokz.jpg", "spotify": "https://open.spotify.com/artist/2vKxv2oKVSEJZ1VmuLUOvY" },
+        { "name": "KPHK", "role": "Recording artist", "note": "", "img": "assets/artists/kphk.jpg", "spotify": "https://open.spotify.com/artist/3xJiemGM1VxCDi2QhGU08l" }
       ]
     </script>
 

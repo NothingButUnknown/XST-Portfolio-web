@@ -349,6 +349,38 @@
   overflow-x: visible;
   overflow-y: clip;
   line-height: 1;
+  /* Numerals slide through this box's top/bottom edge as the column rolls;
+     clipping them there with a hard edge reads as a straight ruled line
+     cutting across the glyph mid-motion. Feathering the clip with a mask
+     fades each numeral out before it hits the edge instead of chopping it
+     off flat.
+     A mask defaults to mask-clip: border-box, which — unlike overflow-x —
+     has no "visible" option: it will hard-clip anything wider than the 1ch
+     column (bold, font-stretch:125% digits routinely are), redrawing the
+     exact rectangular edge we just removed, on the left/right instead of
+     top/bottom. mask-size wider than the box, centered, keeps the vertical
+     fade while letting the gradient's fully-opaque middle extend past the
+     column so overflowing glyph edges aren't clipped there. */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 18%,
+    black 82%,
+    transparent 100%
+  );
+  -webkit-mask-size: 300% 100%;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 18%,
+    black 82%,
+    transparent 100%
+  );
+  mask-size: 300% 100%;
+  mask-position: center;
+  mask-repeat: no-repeat;
 }
 
 .sliding-digit-spacer {

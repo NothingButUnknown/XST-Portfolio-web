@@ -81,12 +81,23 @@
   for (let repeat = 0; repeat < REPEAT; repeat += 1) {
     artists.forEach((artist, artistIndex) => {
       const trackIndex = repeat * length + artistIndex;
-      const card = document.createElement("button");
-      card.type = "button";
+      const card = document.createElement("a");
       card.className = "artist-card";
       card.dataset.index = String(artistIndex);
       card.setAttribute("role", "option");
-      card.setAttribute("aria-label", artist.name);
+      // Card is a real link to the artist's verified Spotify profile (see
+      // scripts/fetch-artists.mjs) — clicking opens Spotify in a new tab
+      // while the click handler below still chases the carousel to center
+      // it, same as before.
+      if (artist.spotify) {
+        card.href = artist.spotify;
+        card.target = "_blank";
+        card.rel = "noopener noreferrer";
+        card.setAttribute("aria-label", `${artist.name} on Spotify`);
+      } else {
+        card.href = "#";
+        card.setAttribute("aria-label", artist.name);
+      }
       if (repeat > 0) {
         // Repeats beyond the first are decorative fill — same content, so
         // hide them from the a11y tree/tab order instead of announcing the
@@ -132,7 +143,10 @@
 
       card.appendChild(caption);
 
-      card.addEventListener("click", () => chaseToTrack(trackIndex));
+      card.addEventListener("click", (event) => {
+        if (!artist.spotify) event.preventDefault();
+        chaseToTrack(trackIndex);
+      });
       artistTrack.appendChild(card);
       cards.push(card);
     });
