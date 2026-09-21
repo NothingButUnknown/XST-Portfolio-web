@@ -17,30 +17,35 @@
      80% lands on the baseline, so the fade completes exactly at the
      letterform's foot instead of running on into the descender space. */
   --fade-type: linear-gradient(180deg, var(--chrome) 0%, var(--xst-red) 55%, var(--art-deep) 100%);
-  /* Metallic sheen for the hero's cycling payoff word — brushed RED steel,
-     not brushed chrome. Was a generated brushed-metal photo clipped to the
-     text; the photo's single hard-edged highlight didn't hold up once
-     stretched to fit words of very different widths (100% 100% squashes
-     it unevenly per word, crushing the soft blur into a flat streak with
-     nowhere for the eye to rest). A CSS gradient scales cleanly at any
-     aspect ratio and the 7 stops below take ~40% of the run just to climb
-     from oxblood to the near-white core and another ~35% to fall back out,
-     so the highlight reads as a slow catch of light, not a seam. --metal-
-     hi stays warm (never pure #fff) so it never clashes hue-cold against
-     the red either side of it. */
+  /* Fill for the hero's cycling payoff word. Used to be a single 112deg
+     linear gradient with one bright stop — on real glyphs a linear gradient
+     can only ever read as a diagonal band, and it cut clean across letters
+     like the "EL." of FEEL. as a hard light wipe, crushing the far end
+     toward black. Replaced with two off-center radial blooms (mixed in via
+     background-blend-mode: screen on .is-cycling, see page.css) sitting
+     over a vertical red-black base — light reads as scattered/caught,
+     not swept. --metal-hi stays warm (never pure #fff) so screen-blending
+     it over red still comes out hot pink-white, not a cold foreign white. */
   --metal-hi: #ffe4d6;
-  --metal-cycle: linear-gradient(
-    112deg,
-    var(--art-deep) 0%,
-    #5c0b0e 16%,
-    var(--xst-red) 34%,
-    var(--xst-red-hot) 47%,
-    var(--metal-hi) 58%,
-    var(--xst-red-hot) 69%,
-    var(--xst-red) 84%,
-    #4a090c 96%,
-    var(--art-deep) 100%
-  );
+  --metal-cycle:
+    radial-gradient(62% 78% at 38% 32%, rgba(255, 228, 214, 0.55), rgba(255, 228, 214, 0) 55%),
+    radial-gradient(48% 64% at 71% 66%, rgba(255, 228, 214, 0.3), rgba(255, 228, 214, 0) 48%),
+    linear-gradient(112deg, rgba(255, 228, 214, 0) 0%, rgba(255, 228, 214, 0.1) 50%, rgba(255, 228, 214, 0) 100%),
+    linear-gradient(
+      180deg,
+      var(--art-rim) 0%,
+      var(--xst-red-hot) 22%,
+      var(--xst-red) 52%,
+      var(--art-mid) 80%,
+      var(--art-deep) 100%
+    );
+  /* Shared turbulence grain — same data URI .art-grain (below) and the
+     cycling word's texture layer (page.css .is-cycling) both use, so the
+     hero's "one thing catching light" and the sitewide ambient wash read
+     as the same material. feColorMatrix after feTurbulence pushes the
+     grayscale noise warm/red instead of neutral grey — texture mixed into
+     the page's red-black atmosphere rather than sitting on top as static. */
+  --grain-svg: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch' result='t'/%3E%3CfeColorMatrix in='t' type='matrix' values='1.4 0 0 0 0 0.55 0 0 0 0 0.45 0 0 0 0 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   --hairline: rgba(220, 221, 225, 0.12);
   --hairline-strong: rgba(220, 221, 225, 0.24);
   --dur: 0.62s;
@@ -133,7 +138,7 @@ a {
   z-index: 0;
   opacity: 0.035;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-image: var(--grain-svg);
 }
 
 /* Third ambient layer: a giant hairline vinyl/soundwave motif, drifting

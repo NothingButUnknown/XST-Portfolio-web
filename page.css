@@ -765,20 +765,27 @@
 .hero-heading .is-cycling {
   display: inline-block;
   will-change: opacity, transform;
-  /* Three layers: a turbulence grain (overlay blend — fine brushed noise),
-     a dark radial vignette (multiply blend) that eats the word's own
-     corners so the ends dissolve into --void instead of sitting on it as
-     a hard-edged cutout, and the --metal-cycle gradient itself underneath.
-     Being a gradient (not the raster photo this used to be), it scales
-     cleanly at any word's box ratio with no distortion, so 100% 100% is
-     safe here — no `cover` workaround needed. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(130% 160% at 50% 45%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 32%, rgba(0, 0, 0, 0.55) 74%, rgba(0, 0, 0, 0.9) 100%),
+  /* Six layers, top to bottom: the shared turbulence grain (--grain-svg,
+     soft-light — was overlay, but overlay desaturates a saturated red into
+     grey; soft-light keeps the hue so the grain reads as belonging to the
+     word instead of sitting on it as static), a weakened dark radial
+     vignette (multiply) that eats the word's own corners so the ends
+     dissolve into --void instead of a hard-edged cutout, then --metal-
+     cycle's own four layers (two off-center blooms + a sheen, screened
+     over a vertical red-black base — see styles.css) unpacked inline since
+     a custom property can't carry background-blend-mode itself, so the
+     blend list below has to spell out one mode per layer in the same
+     order --metal-cycle's gradients are written. The vignette's alpha is
+     capped lower than the old version (0.9 crushed short words like
+     "see." toward black entirely once a diffuse bloom sits under it) and
+     its falloff starts later, closer to the word's edge. */
+  background-image: var(--grain-svg),
+    radial-gradient(130% 160% at 50% 45%, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.35) 100%),
     var(--metal-cycle);
-  background-size: 96px 96px, 100% 100%, 100% 100%;
-  background-position: center, center, center;
-  background-repeat: repeat, no-repeat, no-repeat;
-  background-blend-mode: overlay, multiply, normal;
+  background-size: 96px 96px, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+  background-position: center, center, center, center, center, center;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-blend-mode: soft-light, multiply, screen, screen, soft-light, normal;
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;

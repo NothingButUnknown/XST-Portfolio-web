@@ -1326,8 +1326,17 @@ if (heroHeading) {
           const width = probe.getBoundingClientRect().width;
           probe.remove();
           if (width > 0) {
-            cycleWord.style.backgroundSize = `${Math.ceil(width)}px 100%`;
-            cycleWord.style.backgroundPosition = "left center";
+            const w = `${Math.ceil(width)}px 100%`;
+            // Six layers in page.css's .is-cycling order: grain, vignette,
+            // bloom A, bloom B, sheen, base (see --metal-cycle, styles.css).
+            // backgroundSize/backgroundPosition are shorthands — setting
+            // them to a single value applies that value to EVERY layer,
+            // which used to blow away the grain's fixed 96px tile and
+            // stretch it into a horizontal smear across the whole word box.
+            // The grain (first layer) stays untouched; only the
+            // width-dependent layers after it get sized to the word.
+            cycleWord.style.backgroundSize = `96px 96px, ${w}, ${w}, ${w}, ${w}, ${w}`;
+            cycleWord.style.backgroundPosition = `center, left center, left center, left center, left center, left center`;
           }
         };
         sizeSheenToWord();
