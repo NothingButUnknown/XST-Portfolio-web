@@ -643,7 +643,7 @@
   justify-content: center;
   align-items: center;
   border-top: 1px solid var(--hairline);
-  filter: brightness(1.15) saturate(2.85);
+  filter: brightness(1.05) saturate(1.1);
 }
 
 /* Faint lift at the very bottom of the page — echoes the hero's glow one
