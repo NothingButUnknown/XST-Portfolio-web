@@ -12,18 +12,6 @@ const isCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
 
 const catalogue = JSON.parse(document.querySelector("#catalogue").textContent);
 
-// ---------- stream counts ----------
-// Catalog impact numbers (#impactTotal/#impactCovers/#impactBest)
-// are now hand-typed real figures straight in index.html — Calen sent them,
-// so this no longer derives them from catalogue[i].streams at runtime.
-
-function formatStreams(n) {
-  if (!n) return "";
-  if (n >= 1000000) return `${(n / 1000000).toFixed(1).replace(/\.0$/, "")}M`;
-  if (n >= 1000) return `${Math.round(n / 1000)}K`;
-  return String(n);
-}
-
 // ---------- live-figure flash ----------
 // Reference: Spotify for Artists' "All-time streams · LIVE" readout — the
 // number itself flashes to the hot accent every few seconds and eases back,
@@ -982,7 +970,6 @@ function setDetailImage(item) {
   const token = ++detailToken;
   const thumbSrc = `assets/covers/thumb/${item.file}`;
   const fullSrc = `assets/covers/${item.file}`;
-  const streamsPart = item.streams ? ` · ${formatStreams(item.streams)} streams` : "";
 
   detailImg.src = thumbSrc;
   detailImg.alt = item.title || `Untitled — ${item.id}`;
@@ -997,12 +984,12 @@ function setDetailImage(item) {
 
   const full = new Image();
   full.decoding = "async";
-  full.onerror = () => settle(`JPG${streamsPart}`);
+  full.onerror = () => settle("JPG");
   full.onload = () => {
     const swap = () => {
       if (token !== detailToken) return;
       detailImg.src = fullSrc; // already fetched + decoded — paints with no gap
-      settle(`${full.naturalWidth} × ${full.naturalHeight} · JPG${streamsPart}`);
+      settle(`${full.naturalWidth} × ${full.naturalHeight} · JPG`);
     };
     full.decode ? full.decode().then(swap, swap) : swap();
   };
