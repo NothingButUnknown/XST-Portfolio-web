@@ -1363,6 +1363,14 @@ if (wordmark && finePointer) {
 
     const container = document.createElement("div");
     container.id = id;
+    // Particles inside are position:absolute (see generateParticle below)
+    // and fly outward with random speedHorz — with no box of their own to
+    // resolve against, that's the initial containing block, i.e. they can
+    // push document width. Fixed + inset:0 + overflow:hidden gives them a
+    // viewport-sized box that clips instead. z-index sits just under
+    // .loader's 9999 (page.css) so the egg never paints over the first-load
+    // screen.
+    container.style.cssText = "position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:9998";
     document.body.appendChild(container);
     return container;
   };

@@ -81,7 +81,26 @@ html {
 html,
 body {
   width: 100%;
-  background: var(--void);
+  /* clip, not hidden — hidden turns this into a scroll container, which
+     would break .sc-mini-slot's position:sticky (spotify-card.css) and the
+     sphere/nav position:fixed layers that rely on the *document's* scroll,
+     not a nested one. clip contains overflow without creating that context.
+     Catches the ~5px real overflow at phone widths from cover tiles landing
+     just past the viewport edge at the sphere's rim (scene.js render()). */
+  overflow-x: clip;
+  /* Soft red bloom over the flat void, sampled from the hero art
+     (--art-mid, same token as the ambient .art-wash/.art-drift layers) —
+     so on the rare path where a layer's edge still gets exposed (e.g. an
+     OS accessibility override that ignores the viewport's minimum-scale,
+     see index.html), it reads as atmosphere continuing, not a hole. Subtle
+     by design: shouldn't be visible at normal 1x zoom, only as a save-net
+     past the edge of the in-flow art layers. background-attachment: fixed
+     keeps it glued to the viewport instead of scrolling with the document,
+     same behavior as .art-wash/.art-grain (position: fixed, styles.css). */
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(122, 13, 16, 0.22), transparent 62%),
+    var(--void);
+  background-attachment: fixed;
   color: var(--chrome);
   font-family: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 400;

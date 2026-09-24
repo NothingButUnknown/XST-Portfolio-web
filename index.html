@@ -2,7 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- minimum-scale floors pinch-zoom-out at 100%. Below 100% the visual
+         viewport gets wider than the layout viewport, and every in-flow
+         painted layer (.hero-art, .art-wash, .art-grain — all sized to the
+         layout viewport) ends before the screen does, exposing flat --void
+         black past their right edge. Fixed elements (.site-nav) stretch to
+         the visual viewport regardless, so the nav reaches the true edge
+         while the art doesn't — that mismatch is what reads as a broken/
+         incomplete background. Zoom-IN (pinch in, or OS text-size) is left
+         uncapped — no maximum-scale, no user-scalable:no — so this doesn't
+         cost any accessibility. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0" />
     <title>XST</title>
     <meta
       name="description"
