@@ -184,8 +184,8 @@ a {
   overflow: hidden;
   pointer-events: none;
   opacity: calc(var(--wall-reveal, 0) * var(--wall-strength));
-  mask-image: linear-gradient(90deg, #000 0%, #000 12%, transparent 36%, transparent 64%, #000 88%, #000 100%);
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 12%, transparent 36%, transparent 64%, #000 88%, #000 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 14%, transparent 23%, transparent 77%, #000 86%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 14%, transparent 23%, transparent 77%, #000 86%, #000 100%);
 }
 
 /* At the top of the page, and once the dark footer has taken over, the
@@ -282,15 +282,15 @@ a {
   .cover-wall-side--left {
     left: 0;
     background-position-x: calc(-0.26 * var(--wall-cell));
-    mask-image: linear-gradient(90deg, #000 40%, transparent);
-    -webkit-mask-image: linear-gradient(90deg, #000 40%, transparent);
+    mask-image: linear-gradient(90deg, #000 72%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, #000 72%, transparent);
   }
 
   .cover-wall-side--right {
     right: 0;
     background-position-x: calc(-3 * var(--wall-cell));
-    mask-image: linear-gradient(270deg, #000 40%, transparent);
-    -webkit-mask-image: linear-gradient(270deg, #000 40%, transparent);
+    mask-image: linear-gradient(270deg, #000 72%, transparent);
+    -webkit-mask-image: linear-gradient(270deg, #000 72%, transparent);
     animation-delay: calc(-40s / 12);
   }
 }
