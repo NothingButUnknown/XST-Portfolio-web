@@ -160,6 +160,51 @@ a {
   background-image: var(--grain-svg);
 }
 
+/* Cover wall: the same backdrop as the "Catalog impact" beat of the 10s
+   promo. A tilted grid of the real covers, pre-blurred and pre-graded into
+   one seamless tile (assets/cover-wall.webp, built by
+   scripts/build-cover-wall.py), so, like the two layers above, nothing here
+   runs a runtime blur. Sits between .art-wash and .art-grain in the DOM:
+   every section paints over it and the grain still textures it. The hero's
+   opaque .hero-art hides it at the top, and its bottom mask fade is where
+   the wall first shows through. cover-wall.js drives two variables from
+   scroll: --wall-reveal (0 at the top of the page, 1 once the hero is mostly
+   gone) and --wall-y (a drift along the grid's own tilted axis at a
+   fraction of scroll speed). Opacity and transform only, no repaint. The
+   drift wraps at one tile height, so the plane needs one tile of slack
+   instead of growing with the page. --wall-strength is the one knob for how
+   loud the wall reads behind the content. The mask pulls the middle of the
+   screen down to ~half strength: the globe's far tiles are covers too, and
+   at full strength they melted into the wall behind them. Content sits
+   centered in every section, so the wall frames it from the edges instead
+   of competing with it. */
+.cover-wall {
+  --wall-cell: clamp(110px, 17vw, 300px);
+  --wall-strength: 0.5;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: calc(var(--wall-reveal, 0) * var(--wall-strength));
+  mask-image: radial-gradient(ellipse 58% 52% at 50% 50%, rgba(0, 0, 0, 0.45), #000 100%);
+  -webkit-mask-image: radial-gradient(ellipse 58% 52% at 50% 50%, rgba(0, 0, 0, 0.45), #000 100%);
+}
+
+/* Unrotated size that still covers the viewport at -9deg (w*cos + h*sin by
+   w*sin + h*cos), plus a cell of margin and, vertically, one full tile
+   (6 cells) of drift slack, since --wall-y runs from +half a tile to -half. */
+.cover-wall-plane {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(98.8vw + 15.7vh + var(--wall-cell));
+  height: calc(15.7vw + 98.8vh + 7 * var(--wall-cell));
+  background: url("assets/cover-wall.webp") 0 0 / calc(7 * var(--wall-cell)) calc(6 * var(--wall-cell)) repeat;
+  transform: translate(-50%, -50%) rotate(-9deg) translate3d(0, var(--wall-y, 0px), 0);
+  will-change: transform;
+}
+
 /* Third ambient layer: a giant hairline vinyl/soundwave motif, drifting
    slow (was type-based — a wordmark marquee — before this image swap; see
    .art-drift-track img below for the asset). Still position:fixed (glued
