@@ -169,34 +169,35 @@ a {
    opaque .hero-art hides it at the top, and its bottom mask fade is where
    the wall first shows through. cover-wall.js drives one variable from
    scroll, --wall-reveal: 0 at the top of the page, 1 once the hero is
-   mostly gone. --wall-strength is the one knob for how loud the wall reads.
-   Only the two side bands show covers (the mask). The middle is left to
-   the content, which sits centered in every section. Covers behind it made
-   the globe's far tiles (covers too) melt into the wall, and turned the
-   whole screen into cover art. The heavier baked blur is what makes the
-   bands read as filled rather than as a grid with gaps. */
+   mostly gone (and back to 0 behind the footer). --wall-strength is the
+   one knob for how loud the wall reads.
+   The mask weights it toward the sides without cutting the middle out.
+   The side bands carry the full strength, and the middle keeps ~30% of it,
+   a dark blurred wash behind the content. Covers at full strength behind
+   the content made the globe's far tiles (covers too) melt into the wall.
+   A fully clear middle read as a black strip blocking the wall. */
 .cover-wall {
   --wall-cell: clamp(110px, 17vw, 300px);
-  --wall-strength: 0.5;
+  --wall-strength: 0.6;
+  --wall-mid: rgba(0, 0, 0, 0.3);
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
   opacity: calc(var(--wall-reveal, 0) * var(--wall-strength));
-  mask-image: linear-gradient(90deg, #000 0%, #000 14%, transparent 23%, transparent 77%, #000 86%, #000 100%);
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 14%, transparent 23%, transparent 77%, #000 86%, #000 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 12%, var(--wall-mid) 30%, var(--wall-mid) 70%, #000 88%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 12%, var(--wall-mid) 30%, var(--wall-mid) 70%, #000 88%, #000 100%);
 }
 
 /* At the top of the page, and once the dark footer has taken over, the
    wall is fully transparent. Hidden, the browser can stop compositing it
-   and the rise animations below pause. */
+   and the rise animation below pauses. */
 .cover-wall.is-off {
   visibility: hidden;
 }
 
-.cover-wall.is-off .cover-wall-plane::before,
-.cover-wall.is-off .cover-wall-side {
+.cover-wall.is-off .cover-wall-plane::before {
   animation-play-state: paused;
 }
 
@@ -237,68 +238,28 @@ a {
   }
 }
 
-/* Phone version (markup: .cover-wall-side, desktop hides it). */
-.cover-wall-side {
-  display: none;
-}
-
 @media (max-width: 700px) {
-  /* The desktop bands don't survive a phone. Content runs nearly edge to
-     edge, so a band narrow enough to stay out of its way showed only a
-     smudge of cover, while the tilted full-screen plane behind the mask
-     still cost ~9.4 device megapixels of animated layer at 3x density
-     (628x1666 CSS px on a 390px screen). Instead, one straight column of
-     covers peeks in from each edge, cut by the screen edge and
-     faded toward the middle. Each column is a strip of the same tile
-     (background-position-x picks tile column 0 on the left, column 3 on
-     the right), about 0.42 of a cover wide, so they
-     hug the edges and stay out from under the text. Together they are a
-     fraction of the old layer area (was 9.4 device megapixels), and nothing
-     masks the full screen any more. They
-     reuse cover-wall-rise: top sits half a tile up, so the -3 to +3 cell
-     travel keeps the screen covered. The right column runs half a cell
-     behind the left, so the two sides zigzag instead of mirroring. */
+  /* Phones drop the tilt. A straight plane only needs to be the screen
+     width, not the rotated bounding box, which roughly halves the
+     animated layer at 3x density (~5.8 vs 9.4 device megapixels on a
+     390px screen). The side bands are narrower, since phone content runs
+     nearly edge to edge. */
   .cover-wall {
     --wall-cell: 30vw;
-    --wall-strength: 0.5;
-    mask-image: none;
-    -webkit-mask-image: none;
+    --wall-strength: 0.55;
+    mask-image: linear-gradient(90deg, #000 0%, var(--wall-mid) 22%, var(--wall-mid) 78%, #000 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, var(--wall-mid) 22%, var(--wall-mid) 78%, #000 100%);
   }
 
   .cover-wall-plane {
-    display: none;
-  }
-
-  .cover-wall-side {
-    display: block;
-    position: absolute;
-    top: calc(-3 * var(--wall-cell));
-    width: calc(0.42 * var(--wall-cell));
+    width: 100vw;
     height: calc(100vh + 7 * var(--wall-cell));
-    background: url("assets/cover-wall.webp") 0 0 / calc(7 * var(--wall-cell)) calc(6 * var(--wall-cell)) repeat-y;
-    animation: cover-wall-rise 40s linear infinite;
-    will-change: transform;
-  }
-
-  .cover-wall-side--left {
-    left: 0;
-    background-position-x: calc(-0.58 * var(--wall-cell));
-    mask-image: linear-gradient(90deg, #000 45%, transparent);
-    -webkit-mask-image: linear-gradient(90deg, #000 45%, transparent);
-  }
-
-  .cover-wall-side--right {
-    right: 0;
-    background-position-x: calc(-3 * var(--wall-cell));
-    mask-image: linear-gradient(270deg, #000 45%, transparent);
-    -webkit-mask-image: linear-gradient(270deg, #000 45%, transparent);
-    animation-delay: calc(-40s / 12);
+    transform: translate(-50%, -50%);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cover-wall-plane::before,
-  .cover-wall-side {
+  .cover-wall-plane::before {
     animation: none;
   }
 }
