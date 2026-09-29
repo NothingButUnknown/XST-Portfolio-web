@@ -171,23 +171,54 @@ a {
    scroll, --wall-reveal: 0 at the top of the page, 1 once the hero is
    mostly gone (and back to 0 behind the footer). --wall-strength is the
    one knob for how loud the wall reads.
-   The mask weights it toward the sides without cutting the middle out.
-   The side bands carry the full strength, and the middle keeps ~30% of it,
-   a dark blurred wash behind the content. Covers at full strength behind
-   the content made the globe's far tiles (covers too) melt into the wall.
-   A fully clear middle read as a black strip blocking the wall. */
+   It is weighted toward the sides without cutting the middle out: the
+   side bands carry the full strength, the middle keeps ~30% of it, a dark
+   blurred wash behind the content. Covers at full strength behind the
+   content made the globe's far tiles (covers too) melt into the wall. A
+   fully clear middle read as a black strip blocking the wall.
+
+   Performance: the drift is the one thing here that changes every frame,
+   so it is kept as cheap to composite as possible. The side weighting is
+   a static void gradient laid over the wall (::after), not a mask. A mask
+   on a layer with a moving child forces an extra full-screen offscreen
+   pass every frame. Opacity sits on the moving layer and on the overlay
+   separately, never on the group, for the same reason. The rise steps 30
+   times a second (steps(1200) over 40s) instead of on every display
+   refresh. At ~1px per step on a blurred image it still reads as smooth,
+   but on a 144Hz monitor it is ~5x fewer full-screen recomposites. It
+   also re-runs the nav pill's backdrop blur, which sits on top of the
+   wall, ~5x less often. Measured in software rendering at 1280x720 on
+   the artists section: 36fps masked and every-frame, 43fps like this,
+   60fps with the wall off. On a real GPU the wall barely registers. The
+   desktop lag was the footer dot grid (see workGrid in scene.js). */
 .cover-wall {
   --wall-cell: clamp(110px, 17vw, 300px);
   --wall-strength: 0.6;
-  --wall-mid: rgba(0, 0, 0, 0.3);
+  --wall-mid: 0.7; /* how much of the wall the overlay hides mid-screen */
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
-  opacity: calc(var(--wall-reveal, 0) * var(--wall-strength));
-  mask-image: linear-gradient(90deg, #000 0%, #000 12%, var(--wall-mid) 30%, var(--wall-mid) 70%, #000 88%, #000 100%);
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 12%, var(--wall-mid) 30%, var(--wall-mid) 70%, #000 88%, #000 100%);
+}
+
+/* The side weighting: void over the middle, clear over the sides. Fades in
+   and out with the wall, so it never darkens the hero or the footer on its
+   own. */
+.cover-wall::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: var(--wall-reveal, 0);
+  background: linear-gradient(
+    90deg,
+    rgba(6, 6, 6, 0) 0%,
+    rgba(6, 6, 6, 0) 12%,
+    rgba(6, 6, 6, var(--wall-mid)) 30%,
+    rgba(6, 6, 6, var(--wall-mid)) 70%,
+    rgba(6, 6, 6, 0) 88%,
+    rgba(6, 6, 6, 0) 100%
+  );
 }
 
 /* At the top of the page, and once the dark footer has taken over, the
@@ -224,8 +255,9 @@ a {
   content: "";
   position: absolute;
   inset: 0;
+  opacity: calc(var(--wall-reveal, 0) * var(--wall-strength));
   background: url("assets/cover-wall.webp") 0 0 / calc(7 * var(--wall-cell)) calc(6 * var(--wall-cell)) repeat;
-  animation: cover-wall-rise 40s linear infinite;
+  animation: cover-wall-rise 40s steps(1200) infinite;
   will-change: transform;
 }
 
@@ -240,15 +272,22 @@ a {
 
 @media (max-width: 700px) {
   /* Phones drop the tilt. A straight plane only needs to be the screen
-     width, not the rotated bounding box, which roughly halves the
-     animated layer at 3x density (~5.8 vs 9.4 device megapixels on a
-     390px screen). The side bands are narrower, since phone content runs
-     nearly edge to edge. */
+     width, not the rotated bounding box, which roughly halves the animated
+     layer at 3x density. The side bands are narrower, since phone content
+     runs nearly edge to edge. */
   .cover-wall {
     --wall-cell: 30vw;
     --wall-strength: 0.55;
-    mask-image: linear-gradient(90deg, #000 0%, var(--wall-mid) 22%, var(--wall-mid) 78%, #000 100%);
-    -webkit-mask-image: linear-gradient(90deg, #000 0%, var(--wall-mid) 22%, var(--wall-mid) 78%, #000 100%);
+  }
+
+  .cover-wall::after {
+    background: linear-gradient(
+      90deg,
+      rgba(6, 6, 6, 0) 0%,
+      rgba(6, 6, 6, var(--wall-mid)) 22%,
+      rgba(6, 6, 6, var(--wall-mid)) 78%,
+      rgba(6, 6, 6, 0) 100%
+    );
   }
 
   .cover-wall-plane {

@@ -763,54 +763,100 @@ const workGrid = (() => {
   const GLOW_RGB = "224, 27, 27"; // --xst-red, matches the sitewide glow
   const MAX_OPACITY = 0.5;
   const FLICKER_CHANCE = 0.1;
+  // .work-grid's CSS mask (styles.css): radial-gradient(480px circle at
+  // 50% 42%). Nothing outside that circle is ever visible.
+  const MASK_RADIUS = 480;
+  const MASK_Y = 0.42;
+  // Perf, the main-thread cost of the whole page on desktop: the first
+  // version drew every square of the footer every frame (~27k fillRects
+  // on a 2560px screen, each with its own freshly built rgba() string),
+  // and ran at the display's refresh rate. With the footer in view on a
+  // 1440p monitor that took ~90% of the main thread, and the page dropped
+  // to ~48fps. Now it:
+  //   - only tracks squares inside the mask circle (~1/4 of them at 2560px)
+  //   - snaps opacity to LEVELS steps and fills each step as one path, so
+  //     a frame is LEVELS fill() calls, not one per square
+  //   - redraws at most FRAME_MS apart; a random twinkle reads the same at
+  //     30fps as at 144
+  //   - re-rolls only the squares due to flicker this frame, not
+  //     Math.random() for every square
+  const LEVELS = 16;
+  const FRAME_MS = 1000 / 30;
+  const styles = Array.from(
+    { length: LEVELS },
+    (_, l) => `rgba(${GLOW_RGB}, ${(((l + 0.5) / LEVELS) * MAX_OPACITY).toFixed(3)})`,
+  );
 
-  let cols = 0;
-  let rows = 0;
-  let opacities = new Float32Array(0);
-  let dpr = window.devicePixelRatio || 1;
+  let cellsX = new Float32Array(0); // canvas-px x/y of each visible square
+  let cellsY = new Float32Array(0);
+  let levels = new Uint8Array(0);
+  let size = 0;
   let rafId = null;
   let lastTime = 0;
+  let sinceDraw = 0;
+
+  const randomLevel = () => Math.floor(Math.random() * LEVELS);
 
   const resize = () => {
     if (!contactSection) return;
     const rect = contactSection.getBoundingClientRect();
-    dpr = Math.min(window.devicePixelRatio || 1, isCoarsePointer ? 1.5 : 3);
+    const dpr = Math.min(window.devicePixelRatio || 1, isCoarsePointer ? 1.5 : 3);
     canvas.width = Math.max(1, Math.round(rect.width * dpr));
     canvas.height = Math.max(1, Math.round(rect.height * dpr));
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
 
     const cell = SQUARE_SIZE + GRID_GAP;
-    cols = Math.ceil(rect.width / cell) + 1;
-    rows = Math.ceil(rect.height / cell) + 1;
-    opacities = new Float32Array(cols * rows).map(() => Math.random() * MAX_OPACITY);
+    const cols = Math.ceil(rect.width / cell) + 1;
+    const rows = Math.ceil(rect.height / cell) + 1;
+    const cx = rect.width / 2;
+    const cy = rect.height * MASK_Y;
+    const reach = (MASK_RADIUS + cell) ** 2;
+    const xs = [];
+    const ys = [];
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        const dx = i * cell + SQUARE_SIZE / 2 - cx;
+        const dy = j * cell + SQUARE_SIZE / 2 - cy;
+        if (dx * dx + dy * dy > reach) continue;
+        xs.push(i * cell * dpr);
+        ys.push(j * cell * dpr);
+      }
+    }
+    cellsX = Float32Array.from(xs);
+    cellsY = Float32Array.from(ys);
+    levels = Uint8Array.from(xs, randomLevel);
+    size = SQUARE_SIZE * dpr;
   };
 
   const draw = () => {
     context.clearRect(0, 0, canvas.width, canvas.height);
-    const cell = (SQUARE_SIZE + GRID_GAP) * dpr;
-    const size = SQUARE_SIZE * dpr;
-    for (let i = 0; i < cols; i++) {
-      for (let j = 0; j < rows; j++) {
-        const opacity = opacities[i * rows + j];
-        context.fillStyle = `rgba(${GLOW_RGB}, ${opacity.toFixed(3)})`;
-        context.fillRect(i * cell, j * cell, size, size);
-      }
+    const paths = Array.from({ length: LEVELS }, () => new Path2D());
+    for (let k = 0; k < levels.length; k++) {
+      paths[levels[k]].rect(cellsX[k], cellsY[k], size, size);
+    }
+    for (let l = 0; l < LEVELS; l++) {
+      context.fillStyle = styles[l];
+      context.fill(paths[l]);
     }
   };
 
   const tick = (time) => {
-    const dt = lastTime ? Math.min((time - lastTime) / 1000, 0.1) : 0;
+    const dt = lastTime ? Math.min(time - lastTime, 100) : 0;
     lastTime = time;
-
-    for (let k = 0; k < opacities.length; k++) {
-      if (Math.random() < FLICKER_CHANCE * dt * 60) {
-        opacities[k] = Math.random() * MAX_OPACITY;
-      }
-    }
-
-    draw();
+    sinceDraw += dt;
     rafId = requestAnimationFrame(tick);
+    if (sinceDraw < FRAME_MS) return;
+
+    // Same expected churn as before: each square flickers with
+    // probability FLICKER_CHANCE per 60fps frame.
+    const n = levels.length;
+    let flips = n * FLICKER_CHANCE * (sinceDraw / (1000 / 60));
+    sinceDraw = 0;
+    for (; flips >= 1 || Math.random() < flips; flips--) {
+      levels[Math.floor(Math.random() * n)] = randomLevel();
+    }
+    draw();
   };
 
   window.addEventListener("resize", () => {
@@ -820,11 +866,10 @@ const workGrid = (() => {
   return {
     start() {
       resize();
-      if (reduceMotion) {
-        draw(); // one static frame, no loop
-        return;
-      }
+      draw(); // first frame now, not FRAME_MS later
+      if (reduceMotion) return; // one static frame, no loop
       lastTime = 0;
+      sinceDraw = 0;
       rafId = requestAnimationFrame(tick);
     },
     stop() {
