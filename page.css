@@ -644,6 +644,13 @@
   align-items: center;
   border-top: 1px solid var(--hairline);
   filter: brightness(1.05) saturate(1.1);
+  /* Near-black ground for the close. The cover wall's side bands
+     (styles.css) and the ambient wash fade out here, so "Let's work
+     together" and the CTA carry the frame on their own. Lighter at the
+     top edge, so the wall fades into the footer instead of cutting off at
+     the hairline. The dot grid and glow below are children, so they still
+     paint on top of this. */
+  background: linear-gradient(180deg, rgba(6, 6, 6, 0.7) 0%, rgba(6, 6, 6, 0.93) 32%, rgba(6, 6, 6, 0.96) 100%);
 }
 
 /* Faint lift at the very bottom of the page — echoes the hero's glow one

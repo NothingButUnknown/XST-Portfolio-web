@@ -167,42 +167,88 @@ a {
    runs a runtime blur. Sits between .art-wash and .art-grain in the DOM:
    every section paints over it and the grain still textures it. The hero's
    opaque .hero-art hides it at the top, and its bottom mask fade is where
-   the wall first shows through. cover-wall.js drives two variables from
-   scroll: --wall-reveal (0 at the top of the page, 1 once the hero is mostly
-   gone) and --wall-y (a drift along the grid's own tilted axis at a
-   fraction of scroll speed). Opacity and transform only, no repaint. The
-   drift wraps at one tile height, so the plane needs one tile of slack
-   instead of growing with the page. --wall-strength is the one knob for how
-   loud the wall reads behind the content. The mask pulls the middle of the
-   screen down to ~half strength: the globe's far tiles are covers too, and
-   at full strength they melted into the wall behind them. Content sits
-   centered in every section, so the wall frames it from the edges instead
-   of competing with it. */
+   the wall first shows through. cover-wall.js drives one variable from
+   scroll, --wall-reveal: 0 at the top of the page, 1 once the hero is
+   mostly gone. --wall-strength is the one knob for how loud the wall reads.
+   Only the two side bands show covers (the mask). The middle is left to
+   the content, which sits centered in every section. Covers behind it made
+   the globe's far tiles (covers too) melt into the wall, and turned the
+   whole screen into cover art. The heavier baked blur is what makes the
+   bands read as filled rather than as a grid with gaps. */
 .cover-wall {
   --wall-cell: clamp(110px, 17vw, 300px);
-  --wall-strength: 0.5;
+  --wall-strength: 0.72;
   position: fixed;
   inset: 0;
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
   opacity: calc(var(--wall-reveal, 0) * var(--wall-strength));
-  mask-image: radial-gradient(ellipse 58% 52% at 50% 50%, rgba(0, 0, 0, 0.45), #000 100%);
-  -webkit-mask-image: radial-gradient(ellipse 58% 52% at 50% 50%, rgba(0, 0, 0, 0.45), #000 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 12%, transparent 36%, transparent 64%, #000 88%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 12%, transparent 36%, transparent 64%, #000 88%, #000 100%);
+}
+
+/* Scrolled back to the top, the wall is fully transparent. Hidden, the
+   browser can stop compositing it and the rise animation below pauses. */
+.cover-wall.is-off {
+  visibility: hidden;
+}
+
+.cover-wall.is-off .cover-wall-plane::before {
+  animation-play-state: paused;
 }
 
 /* Unrotated size that still covers the viewport at -9deg (w*cos + h*sin by
    w*sin + h*cos), plus a cell of margin and, vertically, one full tile
-   (6 cells) of drift slack, since --wall-y runs from +half a tile to -half. */
+   (6 cells) of slack for the rise below, which runs from +half a tile to
+   -half. */
 .cover-wall-plane {
   position: absolute;
   left: 50%;
   top: 50%;
   width: calc(98.8vw + 15.7vh + var(--wall-cell));
   height: calc(15.7vw + 98.8vh + 7 * var(--wall-cell));
+  transform: translate(-50%, -50%) rotate(-9deg);
+}
+
+/* The moving part: the tile itself rises along the grid's tilted axis, the
+   promo's upward drift, on a loop that doesn't depend on scrolling. One
+   iteration moves exactly one tile height and the tile repeats, so the
+   loop point is invisible. Transform only, so it runs on the compositor.
+   Speed scales with --wall-cell (6 cells per 40s), so phones and desktops
+   drift at the same pace relative to the covers. */
+.cover-wall-plane::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background: url("assets/cover-wall.webp") 0 0 / calc(7 * var(--wall-cell)) calc(6 * var(--wall-cell)) repeat;
-  transform: translate(-50%, -50%) rotate(-9deg) translate3d(0, var(--wall-y, 0px), 0);
+  animation: cover-wall-rise 40s linear infinite;
   will-change: transform;
+}
+
+@keyframes cover-wall-rise {
+  from {
+    transform: translate3d(0, calc(3 * var(--wall-cell)), 0);
+  }
+  to {
+    transform: translate3d(0, calc(-3 * var(--wall-cell)), 0);
+  }
+}
+
+@media (max-width: 700px) {
+  /* Phone content runs nearly edge to edge, so the bands stay thin and
+     quieter. The wall just edges the screen instead of sitting under text. */
+  .cover-wall {
+    --wall-strength: 0.5;
+    mask-image: linear-gradient(90deg, #000 0%, transparent 24%, transparent 76%, #000 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, transparent 24%, transparent 76%, #000 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cover-wall-plane::before {
+    animation: none;
+  }
 }
 
 /* Third ambient layer: a giant hairline vinyl/soundwave motif, drifting
