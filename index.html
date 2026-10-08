@@ -29,6 +29,7 @@
     <link rel="stylesheet" href="page.css" />
     <link rel="stylesheet" href="carousel.css" />
     <link rel="stylesheet" href="spotify-card.css" />
+    <link rel="stylesheet" href="cursor.css" />
     <link rel="preload" as="image" href="assets/xst-mark-loader.png" />
     <!-- page.css swaps to hero-art-1200.webp at <=700px — preload whichever
          one will actually paint, or phones download a file they never show
@@ -156,8 +157,9 @@
       })();
     </script>
 
-    <div class="cursor-dot" id="cursorDot" aria-hidden="true">
-      <span class="cursor-label">Drag</span>
+    <div class="xst-cursor" id="xstCursor" aria-hidden="true">
+      <span class="xst-cursor__lens"></span>
+      <span class="xst-cursor__fill"><span class="xst-cursor__label">Drag</span></span>
     </div>
 
     <main id="top">
@@ -476,5 +478,6 @@
     <script src="cover-wall.js"></script>
     <script src="scene.js"></script>
     <script src="carousel.js"></script>
+    <script src="cursor.js" defer></script>
   </body>
 </html>

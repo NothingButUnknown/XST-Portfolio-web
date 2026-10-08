@@ -1143,52 +1143,8 @@ if (navLinks.length && navSections.length) {
 // render() is started solely by the IntersectionObserver above once the
 // sphere actually enters the viewport — see the sceneVisible comment there.
 
-// ---------- custom cursor (mouse-with-hover devices only) ----------
-//
-// Hovering the sphere swaps the pointer for a filled "Drag" bubble; hovering
-// a specific cover swaps the label to "View". The bubble eases toward the
-// real pointer position rather than snapping to it, which is what reads as
-// motion rather than a static badge.
-
-const cursorDot = document.querySelector("#cursorDot");
-const cursorLabel = cursorDot?.querySelector(".cursor-label");
+// finePointer is shared by the letter-hover and wordmark effects below.
 const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-
-if (cursorDot && finePointer && !reduceMotion) {
-  let pointerX = window.innerWidth / 2;
-  let pointerY = window.innerHeight / 2;
-  let renderXPos = pointerX;
-  let renderYPos = pointerY;
-
-  window.addEventListener("pointermove", (event) => {
-    if (event.pointerType !== "mouse") return;
-    pointerX = event.clientX;
-    pointerY = event.clientY;
-
-    const overScene = Boolean(event.target.closest("#scene"));
-    const overNode = Boolean(event.target.closest(".cover-node"));
-
-    cursorDot.classList.toggle("is-visible", overScene);
-    cursorDot.classList.toggle("is-dragmode", overScene && !overNode);
-    cursorDot.classList.toggle("is-nodehover", overNode);
-    if (cursorLabel) cursorLabel.textContent = overNode ? "View" : "Drag";
-    scene.classList.toggle("has-custom-cursor", overScene);
-  });
-
-  document.addEventListener("pointerout", (event) => {
-    if (event.pointerType !== "mouse" || event.relatedTarget) return;
-    cursorDot.classList.remove("is-visible");
-    scene.classList.remove("has-custom-cursor");
-  });
-
-  const renderCursor = () => {
-    renderXPos += (pointerX - renderXPos) * 0.22;
-    renderYPos += (pointerY - renderYPos) * 0.22;
-    cursorDot.style.transform = `translate3d(${renderXPos}px, ${renderYPos}px, 0)`;
-    requestAnimationFrame(renderCursor);
-  };
-  renderCursor();
-}
 
 // ---------- letter hover magnify (mouse-with-hover devices only) ----------
 //

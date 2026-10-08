@@ -1,0 +1,158 @@
+/* ---------- site-wide cursor (driven by cursor.js) ----------
+   Outer element: position + rotate/squash, written by JS once per frame.
+   Lens: the inverting dot. Fill: the red Drag/View bubble that covers it over
+   the sphere. Both are a fixed 60px box sized ONLY via transform: scale(), so
+   nothing here ever triggers layout or paint-heavy transitions. */
+
+.xst-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2147483646;
+  will-change: transform;
+  contain: layout style;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.xst-cursor.is-visible {
+  opacity: 1;
+}
+
+.xst-cursor__lens,
+.xst-cursor__fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  /* --s is the target size ratio, --press is the pointerdown squeeze. */
+  --s: 0.2;
+  --press: 1;
+  transform: translate(-50%, -50%) scale(calc(var(--s) * var(--press)));
+  transition: transform 0.32s var(--ease), opacity 0.22s ease;
+}
+
+/* Idle dot = 12px. Inverts whatever is underneath, like voidvoidvoid.com. */
+.xst-cursor__lens {
+  -webkit-backdrop-filter: grayscale(1) brightness(1.5) contrast(9999) invert(1);
+  backdrop-filter: grayscale(1) brightness(1.5) contrast(9999) invert(1);
+}
+
+/* No backdrop-filter: plain light dot with a thin dark ring so it reads on
+   both light and dark areas. (mix-blend-mode can't reach the page from
+   inside this stacking context, so it isn't used.) */
+@supports not ((backdrop-filter: none) or (-webkit-backdrop-filter: none)) {
+  .xst-cursor__lens {
+    background: #fff;
+    opacity: 0.72;
+    box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35);
+  }
+
+  .xst-cursor.is-link .xst-cursor__lens {
+    opacity: 0.34;
+  }
+}
+
+.xst-cursor.is-down .xst-cursor__lens,
+.xst-cursor.is-down .xst-cursor__fill {
+  --press: 0.85;
+}
+
+/* Links: grow to 48px. Full-strength invert, as on voidvoidvoid.com — a
+   half-opacity lens just reads as a grey smudge. */
+.xst-cursor.is-link .xst-cursor__lens {
+  --s: 0.8;
+}
+
+/* Red bubble: scaled to nothing until the sphere / a cover is hovered. */
+.xst-cursor__fill {
+  --s: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--xst-red);
+  opacity: 0;
+}
+
+/* Glow rides on a pseudo so only its opacity animates (same trick as
+   .cover-node.is-active::after). */
+.xst-cursor__fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow: 0 0 32px 6px rgba(224, 27, 27, 0.4);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.xst-cursor.is-drag .xst-cursor__fill,
+.xst-cursor.is-view .xst-cursor__fill {
+  --s: 1;
+  opacity: 1;
+}
+
+.xst-cursor.is-drag .xst-cursor__fill::after,
+.xst-cursor.is-view .xst-cursor__fill::after {
+  opacity: 1;
+}
+
+.xst-cursor.is-view .xst-cursor__fill {
+  background: var(--xst-red-hot);
+}
+
+/* The opaque bubble covers the lens, so drop the backdrop-filter cost. */
+.xst-cursor.is-drag .xst-cursor__lens,
+.xst-cursor.is-view .xst-cursor__lens {
+  opacity: 0;
+}
+
+.xst-cursor__label {
+  position: relative;
+  font-weight: 700;
+  font-stretch: 112.5%;
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.xst-cursor.is-drag .xst-cursor__label,
+.xst-cursor.is-view .xst-cursor__label {
+  opacity: 1;
+}
+
+/* Native cursor off everywhere once cursor.js has passed its gate... */
+html.xst-cursor-on,
+html.xst-cursor-on *,
+html.xst-cursor-on *::before,
+html.xst-cursor-on *::after {
+  cursor: none !important;
+}
+
+/* ...except form fields, where the dot hides and the real cursor is needed. */
+html.xst-cursor-on :is(input, textarea, select, [contenteditable]:not([contenteditable="false"]),
+    [contenteditable]:not([contenteditable="false"]) *) {
+  cursor: auto !important;
+}
+
+html.xst-cursor-on :is(textarea, input:not([type]), input[type="text"], input[type="email"],
+    input[type="search"], input[type="url"], input[type="tel"], input[type="password"],
+    input[type="number"], [contenteditable]:not([contenteditable="false"]),
+    [contenteditable]:not([contenteditable="false"]) *) {
+  cursor: text !important;
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 767px) {
+  .xst-cursor {
+    display: none;
+  }
+}
