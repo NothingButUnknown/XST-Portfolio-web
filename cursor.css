@@ -1,119 +1,129 @@
 /* ---------- site-wide cursor (driven by cursor.js) ----------
-   Outer element: position + rotate/squash, written by JS once per frame.
-   Lens: the inverting dot. Fill: the red Drag/View bubble that covers it over
-   the sphere. Both are a fixed 60px box sized ONLY via transform: scale(), so
-   nothing here ever triggers layout or paint-heavy transitions. */
+   The wrapper is display:contents, so it has no box and no stacking context:
+   every part is its own fixed element in the root stacking context, which is
+   what lets mix-blend-mode reach the page underneath (a fixed wrapper would
+   isolate the blend and the dot would just be a flat disc).
+
+   The red dot is two stacked blends of the same shape:
+     1. __invert  white, difference  dark page -> white, white text -> black
+     2. __tint    red,   multiply    white -> XST red, black stays black
+   Net result: XST red on the dark page, with text under it knocked out dark,
+   and a dark maroon dot over red artwork, so it never disappears on theme.
+
+   cursor.js writes --x/--y/--a/--p/--q on the wrapper once per frame; parts
+   read them through the individual translate/rotate/scale properties. Size
+   changes are transform: scale() on a fixed 60px box, transitioned in CSS.
+   Nothing here triggers layout. */
 
 .xst-cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-  z-index: 2147483646;
-  will-change: transform;
-  contain: layout style;
-  opacity: 0;
-  transition: opacity 0.15s ease;
+  display: contents;
 }
 
-.xst-cursor.is-visible {
-  opacity: 1;
-}
-
-.xst-cursor__lens,
+.xst-cursor__invert,
+.xst-cursor__tint,
 .xst-cursor__fill {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 60px;
   height: 60px;
+  margin: -30px 0 0 -30px;
   border-radius: 50%;
-  /* --s is the target size ratio, --press is the pointerdown squeeze. */
+  pointer-events: none;
+  z-index: 2147483646;
+  will-change: transform;
+  translate: var(--x, -100px) var(--y, -100px);
+  opacity: 0;
+  /* --s is the target size ratio, --press the pointerdown squeeze. */
   --s: 0.2;
   --press: 1;
-  transform: translate(-50%, -50%) scale(calc(var(--s) * var(--press)));
+  transform: scale(calc(var(--s) * var(--press)));
   transition: transform 0.32s var(--ease), opacity 0.22s ease;
 }
 
-/* Idle dot = 12px. Inverts whatever is underneath, like voidvoidvoid.com. */
-.xst-cursor__lens {
-  -webkit-backdrop-filter: grayscale(1) brightness(1.5) contrast(9999) invert(1);
-  backdrop-filter: grayscale(1) brightness(1.5) contrast(9999) invert(1);
+/* Only the dot stretches; the Drag/View bubble stays round so its label
+   never skews. */
+.xst-cursor__invert,
+.xst-cursor__tint {
+  rotate: var(--a, 0deg);
+  scale: var(--p, 1) var(--q, 1);
 }
 
-/* No backdrop-filter: plain light dot with a thin dark ring so it reads on
-   both light and dark areas. (mix-blend-mode can't reach the page from
-   inside this stacking context, so it isn't used.) */
-@supports not ((backdrop-filter: none) or (-webkit-backdrop-filter: none)) {
-  .xst-cursor__lens {
-    background: #fff;
-    opacity: 0.72;
-    box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35);
-  }
-
-  .xst-cursor.is-link .xst-cursor__lens {
-    opacity: 0.34;
-  }
+.xst-cursor__invert {
+  background: #fff;
+  mix-blend-mode: difference;
 }
 
-.xst-cursor.is-down .xst-cursor__lens,
+.xst-cursor__tint {
+  background: var(--xst-red);
+  mix-blend-mode: multiply;
+}
+
+.xst-cursor.is-visible:not(.is-drag):not(.is-view) .xst-cursor__invert,
+.xst-cursor.is-visible:not(.is-drag):not(.is-view) .xst-cursor__tint {
+  opacity: 1;
+}
+
+/* Links: grow to 48px, full-strength knockout like voidvoidvoid.com. */
+.xst-cursor.is-link .xst-cursor__invert,
+.xst-cursor.is-link .xst-cursor__tint {
+  --s: 0.8;
+}
+
+.xst-cursor.is-down .xst-cursor__invert,
+.xst-cursor.is-down .xst-cursor__tint,
 .xst-cursor.is-down .xst-cursor__fill {
   --press: 0.85;
 }
 
-/* Links: grow to 48px. Full-strength invert, as on voidvoidvoid.com — a
-   half-opacity lens just reads as a grey smudge. */
-.xst-cursor.is-link .xst-cursor__lens {
-  --s: 0.8;
-}
+/* ---------- Drag / View bubble over the sphere ---------- */
 
-/* Red bubble: scaled to nothing until the sphere / a cover is hovered. */
 .xst-cursor__fill {
   --s: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: var(--xst-red);
-  opacity: 0;
+  /* The bubble scales up a touch slower than the dot shrinks, so the
+     hand-off reads as one shape morphing rather than a swap. */
+  transition: transform 0.42s var(--ease), opacity 0.26s ease;
 }
 
-/* Glow rides on a pseudo so only its opacity animates (same trick as
-   .cover-node.is-active::after). */
-.xst-cursor__fill::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  box-shadow: 0 0 32px 6px rgba(224, 27, 27, 0.4);
-  opacity: 0;
-  transition: opacity 0.22s ease;
-}
-
-.xst-cursor.is-drag .xst-cursor__fill,
-.xst-cursor.is-view .xst-cursor__fill {
+.xst-cursor.is-visible.is-drag .xst-cursor__fill,
+.xst-cursor.is-visible.is-view .xst-cursor__fill {
   --s: 1;
   opacity: 1;
 }
 
-.xst-cursor.is-drag .xst-cursor__fill::after,
-.xst-cursor.is-view .xst-cursor__fill::after {
-  opacity: 1;
+/* Glow and the hot-red View tone are layers whose opacity crossfades, so
+   Drag <-> View never snaps colour (background itself isn't animated). */
+.xst-cursor__fill::after,
+.xst-cursor__hot {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.26s ease;
 }
 
-.xst-cursor.is-view .xst-cursor__fill {
+.xst-cursor__fill::after {
+  box-shadow: 0 0 32px 6px rgba(224, 27, 27, 0.4);
+}
+
+.xst-cursor__hot {
   background: var(--xst-red-hot);
 }
 
-/* The opaque bubble covers the lens, so drop the backdrop-filter cost. */
-.xst-cursor.is-drag .xst-cursor__lens,
-.xst-cursor.is-view .xst-cursor__lens {
-  opacity: 0;
+.xst-cursor.is-drag .xst-cursor__fill::after,
+.xst-cursor.is-view .xst-cursor__fill::after,
+.xst-cursor.is-view .xst-cursor__hot {
+  opacity: 1;
 }
 
 .xst-cursor__label {
-  position: relative;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 700;
   font-stretch: 112.5%;
   font-size: 0.6rem;
@@ -125,8 +135,8 @@
   transition: opacity 0.2s ease;
 }
 
-.xst-cursor.is-drag .xst-cursor__label,
-.xst-cursor.is-view .xst-cursor__label {
+.xst-cursor.is-drag .xst-cursor__label[data-mode="drag"],
+.xst-cursor.is-view .xst-cursor__label[data-mode="view"] {
   opacity: 1;
 }
 

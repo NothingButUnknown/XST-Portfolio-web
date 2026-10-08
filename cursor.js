@@ -1,9 +1,11 @@
 // ---------- site-wide cursor (mouse-with-hover, 768px+ only) ----------
 //
-// An inverting dot that follows the pointer site-wide, grows over links, and
-// morphs into the red "Drag" / "View" bubble over the sphere / a cover. Only
-// the outer element's transform is written per frame; every size or state
-// change is a class toggle that CSS animates with transform + opacity.
+// A red knockout dot that follows the pointer site-wide, smears in the
+// direction of travel, grows over links, and morphs into the red "Drag" /
+// "View" bubble over the sphere / a cover. One style write per frame (five
+// custom properties on the wrapper, read by the parts as translate / rotate /
+// scale); every size or state change is a class toggle CSS animates with
+// transform + opacity.
 
 (() => {
   "use strict";
@@ -11,14 +13,14 @@
   const cursor = document.getElementById("xstCursor");
   if (!cursor) return;
 
-  const label = cursor.querySelector(".xst-cursor__label");
   const root = document.documentElement;
   const gate = window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 768px)");
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const FIELD = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
   const LINK = 'a, button, [role="button"], [data-cursor="pointer"], label, summary';
-  const LERP = 0.16; // per 60fps frame
+  const LERP = 0.16; // position, per 60fps frame
+  const SHAPE_LERP = 0.22; // stretch + angle, per 60fps frame
   const FRAME = 1000 / 60;
 
   let on = false; // gate passed + listeners attached
@@ -41,7 +43,7 @@
   let p = 1;
 
   let curClass = "";
-  let curTransform = "";
+  let curVars = "";
 
   const r2 = (n) => Math.round(n * 100) / 100;
 
@@ -56,7 +58,7 @@
     return "";
   }
 
-  // Touches the DOM only when the class string or label actually changes.
+  // Touches the DOM only when the class string actually changes.
   function render() {
     const m = dragLock ? "drag" : mode;
     const live = on && shown && m !== "field";
@@ -66,47 +68,50 @@
       (m && m !== "field" ? " is-" + m : "") +
       (down ? " is-down" : "");
     if (cls === curClass) return;
-    if ((m === "drag" || m === "view") && label) {
-      const text = m === "view" ? "View" : "Drag";
-      if (label.textContent !== text) label.textContent = text;
-    }
     cursor.className = curClass = cls;
   }
 
   function paint() {
-    const t =
-      "translate3d(" + r2(x) + "px," + r2(y) + "px,0) rotate(" + r2(angle) +
-      "deg) scale(" + r2(p) + "," + r2(1 / Math.sqrt(p)) + ")";
-    if (t === curTransform) return;
-    cursor.style.transform = curTransform = t;
+    const v =
+      "--x:" + r2(x) + "px;--y:" + r2(y) + "px;--a:" + r2(angle) +
+      "deg;--p:" + r2(p) + ";--q:" + r2(1 / Math.sqrt(p));
+    if (v === curVars) return;
+    cursor.style.cssText = curVars = v;
   }
 
   function frame(now) {
     // Clamp so a background-tab stall or a late rAF timestamp can't jump.
     const dt = Math.max(1, Math.min(now - last, 50));
     last = now;
+    const steps = dt / FRAME;
 
     // Frame-rate-independent lerp: same feel at 60 / 120 / 144 Hz.
-    const k = reduce ? 1 : 1 - Math.pow(1 - LERP, dt / FRAME);
+    const k = reduce ? 1 : 1 - Math.pow(1 - LERP, steps);
+    const ks = reduce ? 1 : 1 - Math.pow(1 - SHAPE_LERP, steps);
     const px = x;
     const py = y;
     x += (tx - x) * k;
     y += (ty - y) * k;
 
-    // No stretch over link/drag/view or under reduced motion.
-    if (reduce || dragLock || mode === "link" || mode === "drag" || mode === "view") {
-      vx = vy = 0;
-      p = 1;
-      angle = 0;
-    } else {
-      // Smoothed velocity in px per 60fps frame.
-      const f = FRAME / dt;
-      const s = 1 - Math.pow(0.75, dt / FRAME);
-      vx += ((x - px) * f - vx) * s;
-      vy += ((y - py) * f - vy) * s;
-      const speed = Math.hypot(vx, vy);
-      p = Math.min(1 + speed * 0.04, 1.8);
-      if (speed > 0.3) angle = (Math.atan2(vy, vx) * 180) / Math.PI;
+    // Smoothed velocity in px per 60fps frame, measured in 2D so the smear
+    // reads the same whichever way the pointer travels.
+    const s = 1 - Math.pow(0.75, steps);
+    vx += ((x - px) / steps - vx) * s;
+    vy += ((y - py) / steps - vy) * s;
+    const speed = Math.hypot(vx, vy);
+
+    // Over link/drag/view or under reduced motion the dot relaxes back to a
+    // circle instead of snapping to one, so mode changes never jolt it.
+    const still = reduce || dragLock || mode === "link" || mode === "drag" || mode === "view";
+    const pTarget = still ? 1 : Math.min(1 + speed * 0.04, 1.8);
+    p += (pTarget - p) * ks;
+
+    // Ease the angle along the shortest path mod 180deg: the ellipse is
+    // symmetric, so reversing direction never spins it half a turn.
+    if (!still && speed > 0.3) {
+      const target = (Math.atan2(vy, vx) * 180) / Math.PI;
+      const d = ((((target - angle) % 180) + 270) % 180) - 90;
+      angle = (angle + d * ks) % 180;
     }
 
     // Idle: settled on the target and unstretched, so stop the loop.
