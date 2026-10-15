@@ -780,8 +780,13 @@ const workGrid = (() => {
   //     30fps as at 144
   //   - re-rolls only the squares due to flicker this frame, not
   //     Math.random() for every square
+  //   - on touch devices, redraws at 15fps instead of 30. Each redraw
+  //     re-uploads the whole canvas, and with only the top of the footer
+  //     peeking in under the artists row that upload was over half of a
+  //     throttled phone's main thread. Same churn per second, applied in
+  //     fewer batches; a random twinkle reads the same.
   const LEVELS = 16;
-  const FRAME_MS = 1000 / 30;
+  const FRAME_MS = 1000 / (isCoarsePointer ? 15 : 30);
   const styles = Array.from(
     { length: LEVELS },
     (_, l) => `rgba(${GLOW_RGB}, ${(((l + 0.5) / LEVELS) * MAX_OPACITY).toFixed(3)})`,

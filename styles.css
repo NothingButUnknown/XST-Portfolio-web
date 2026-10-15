@@ -167,10 +167,10 @@ a {
    runs a runtime blur. Sits between .art-wash and .art-grain in the DOM:
    every section paints over it and the grain still textures it. The hero's
    opaque .hero-art hides it at the top, and its bottom mask fade is where
-   the wall first shows through. cover-wall.js drives one variable from
-   scroll, --wall-reveal: 0 at the top of the page, 1 once the hero is
-   mostly gone (and back to 0 behind the footer). --wall-strength is the
-   one knob for how loud the wall reads.
+   the wall first shows through. cover-wall.js drives one reveal value from
+   scroll: 0 at the top of the page, 1 once the hero is mostly gone (and
+   back to 0 behind the footer). --wall-strength is the one knob for how
+   loud the wall reads; the script reads it and multiplies it in.
    It is weighted toward the sides without cutting the middle out: the
    side bands carry the full strength, the middle keeps ~30% of it, a dark
    blurred wash behind the content. Covers at full strength behind the
@@ -179,7 +179,7 @@ a {
 
    Performance: the drift is the one thing here that changes every frame,
    so it is kept as cheap to composite as possible. The side weighting is
-   a static void gradient laid over the wall (::after), not a mask. A mask
+   a static void gradient laid over the wall (.cover-wall-shade), not a mask. A mask
    on a layer with a moving child forces an extra full-screen offscreen
    pass every frame. Opacity sits on the moving layer and on the overlay
    separately, never on the group, for the same reason. The rise steps 30
@@ -190,7 +190,15 @@ a {
    wall, ~5x less often. Measured in software rendering at 1280x720 on
    the artists section: 36fps masked and every-frame, 43fps like this,
    60fps with the wall off. On a real GPU the wall barely registers. The
-   desktop lag was the footer dot grid (see workGrid in scene.js). */
+   desktop lag was the footer dot grid (see workGrid in scene.js).
+   The tile and the shade are real elements, not ::before/::after, so
+   cover-wall.js can write their opacity directly. It used to write a
+   --wall-reveal custom property that both read through calc(), and a
+   custom property change repaints the layer instead of updating opacity
+   on the compositor: every scroll frame of the fade-in and fade-out
+   re-rasterized the whole wall tile, the main source of scroll jank on
+   phones (traced at 390px/3x: ~2.5ms of raster per frame on average,
+   down to ~0 with direct opacity). */
 .cover-wall {
   --wall-cell: clamp(110px, 17vw, 300px);
   --wall-strength: 0.6;
@@ -204,12 +212,12 @@ a {
 
 /* The side weighting: void over the middle, clear over the sides. Fades in
    and out with the wall, so it never darkens the hero or the footer on its
-   own. */
-.cover-wall::after {
-  content: "";
+   own. Opacity is written by cover-wall.js. */
+.cover-wall-shade {
   position: absolute;
   inset: 0;
-  opacity: var(--wall-reveal, 0);
+  opacity: 0;
+  will-change: opacity;
   background: linear-gradient(
     90deg,
     rgba(6, 6, 6, 0) 0%,
@@ -222,13 +230,10 @@ a {
 }
 
 /* At the top of the page, and once the dark footer has taken over, the
-   wall is fully transparent. Hidden, the browser can stop compositing it
-   and the rise animation below pauses. */
-.cover-wall.is-off {
-  visibility: hidden;
-}
-
-.cover-wall.is-off .cover-wall-plane::before {
+   wall is fully transparent: nothing is drawn, and the rise animation
+   below pauses. Not visibility: hidden. Toggling that dropped the wall's
+   raster, and every return paid for the whole tile again. */
+.cover-wall.is-off .cover-wall-tile {
   animation-play-state: paused;
 }
 
@@ -250,15 +255,28 @@ a {
    iteration moves exactly one tile height and the tile repeats, so the
    loop point is invisible. Transform only, so it runs on the compositor.
    Speed scales with --wall-cell (6 cells per 40s), so phones and desktops
-   drift at the same pace relative to the covers. */
-.cover-wall-plane::before {
-  content: "";
+   drift at the same pace relative to the covers. Opacity (reveal times
+   --wall-strength) is written by cover-wall.js. */
+.cover-wall-tile {
   position: absolute;
   inset: 0;
-  opacity: calc(var(--wall-reveal, 0) * var(--wall-strength));
+  opacity: 0;
   background: url("assets/cover-wall.webp") 0 0 / calc(7 * var(--wall-cell)) calc(6 * var(--wall-cell)) repeat;
   animation: cover-wall-rise 40s steps(1200) infinite;
   will-change: transform;
+}
+
+/* Touch / phone widths: the same tile, painted once into a 1x canvas by
+   cover-wall.js (see the note there). */
+.cover-wall-tile.is-canvas {
+  background: none;
+}
+
+.cover-wall-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 
 @keyframes cover-wall-rise {
@@ -280,7 +298,7 @@ a {
     --wall-strength: 0.55;
   }
 
-  .cover-wall::after {
+  .cover-wall-shade {
     background: linear-gradient(
       90deg,
       rgba(6, 6, 6, 0) 0%,
@@ -298,7 +316,7 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cover-wall-plane::before {
+  .cover-wall-tile {
     animation: none;
   }
 }

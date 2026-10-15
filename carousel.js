@@ -164,11 +164,21 @@
   let tickerStep = null; // set once the labels ticker below has data to drive
 
   // ---------- layout tuning per breakpoint (flat row: translate only) ----------
-  function layoutConfig() {
+  // Cached, refreshed on resize only. layout() runs every frame, and reading
+  // window.innerWidth there came right after scene.js had written the
+  // sphere's styles in the same frame, which forced a synchronous style and
+  // layout pass: about a third of the main thread on a throttled phone.
+  let cachedConfig = null;
+  function readLayoutConfig() {
     const mobile = window.innerWidth <= 600;
-    return {
+    cachedConfig = {
       spacing: mobile ? 148 : 224,
     };
+  }
+
+  function layoutConfig() {
+    if (!cachedConfig) readLayoutConfig();
+    return cachedConfig;
   }
 
   function wrapOffset(offset) {
@@ -178,18 +188,41 @@
     return offset;
   }
 
+  // Last values written per card, so a frame only touches what changed.
+  // z-index and visibility are not compositor-only: writing them every
+  // frame re-resolved style for all 24 cards even when nothing moved.
+  const lastZ = new Array(cards.length).fill(null);
+  const lastVisible = new Array(cards.length).fill(null);
+  let lastLayoutPos = null;
+  let lastLayoutSpacing = null;
+  let lastLayoutRange = null;
+
   function layout() {
     const { spacing } = layoutConfig();
+    // Stopped and settled: nothing to write.
+    if (pos === lastLayoutPos && spacing === lastLayoutSpacing && VISIBLE_RANGE === lastLayoutRange) return;
+    lastLayoutPos = pos;
+    lastLayoutSpacing = spacing;
+    lastLayoutRange = VISIBLE_RANGE;
 
     cards.forEach((card, index) => {
       const offset = wrapOffset(index - pos);
       const abs = Math.abs(offset);
       const visible = abs <= VISIBLE_RANGE;
 
-      card.style.zIndex = String(Math.round(100 - abs));
-      card.style.pointerEvents = visible ? "auto" : "none";
-      card.style.visibility = visible ? "visible" : "hidden";
+      const z = Math.round(100 - abs);
+      if (lastZ[index] !== z) {
+        lastZ[index] = z;
+        card.style.zIndex = String(z);
+      }
+      if (lastVisible[index] !== visible) {
+        lastVisible[index] = visible;
+        card.style.pointerEvents = visible ? "auto" : "none";
+        card.style.visibility = visible ? "visible" : "hidden";
+      }
 
+      // Hidden cards sit off-stage; no need to move them every frame.
+      if (!visible) return;
       const x = offset * spacing;
       card.style.transform = `translate3d(calc(-50% + ${x}px), -50%, 0)`;
     });
@@ -310,6 +343,7 @@
   }
 
   window.addEventListener("resize", () => {
+    readLayoutConfig();
     updateVisibleRange();
     layout();
   });
