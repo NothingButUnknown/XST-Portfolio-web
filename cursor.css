@@ -10,7 +10,7 @@
    Net result: XST red on the dark page, with text under it knocked out dark,
    and a dark maroon dot over red artwork, so it never disappears on theme.
 
-   cursor.js writes --x/--y/--a/--p/--q on the wrapper once per frame; parts
+   cursor.js writes --x/--y/--a/--p/--q/--ox/--oy on the wrapper once per frame; parts
    read them through the individual translate/rotate/scale properties. Size
    changes are transform: scale() on a fixed 60px box, transitioned in CSS.
    Nothing here triggers layout. */
@@ -45,6 +45,9 @@
    never skews. */
 .xst-cursor__invert,
 .xst-cursor__tint {
+  /* --ox/--oy pull the stretched ellipse back so the tail trails the pointer
+     and the leading edge stays on it. */
+  translate: calc(var(--x, -100px) + var(--ox, 0px)) calc(var(--y, -100px) + var(--oy, 0px));
   rotate: var(--a, 0deg);
   scale: var(--p, 1) var(--q, 1);
 }

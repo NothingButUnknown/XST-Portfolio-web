@@ -2,7 +2,7 @@
 //
 // A red knockout dot that follows the pointer site-wide, smears in the
 // direction of travel, grows over links, and morphs into the red "Drag" /
-// "View" bubble over the sphere / a cover. One style write per frame (five
+// "View" bubble over the sphere / a cover. One style write per frame (seven
 // custom properties on the wrapper, read by the parts as translate / rotate /
 // scale); every size or state change is a class toggle CSS animates with
 // transform + opacity.
@@ -19,9 +19,9 @@
 
   const FIELD = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
   const LINK = 'a, button, [role="button"], [data-cursor="pointer"], label, summary';
-  const LERP = 0.16; // position, per 60fps frame
   const SHAPE_LERP = 0.22; // stretch + angle, per 60fps frame
   const FRAME = 1000 / 60;
+  const R = 6; // resting dot radius in px (60px box x --s 0.2)
 
   let on = false; // gate passed + listeners attached
   let shown = false; // a real mouse move has happened since the last hide
@@ -41,6 +41,8 @@
   let vy = 0;
   let angle = 0;
   let p = 1;
+  let ox = 0;
+  let oy = 0;
 
   let curClass = "";
   let curVars = "";
@@ -74,24 +76,27 @@
   function paint() {
     const v =
       "--x:" + r2(x) + "px;--y:" + r2(y) + "px;--a:" + r2(angle) +
-      "deg;--p:" + r2(p) + ";--q:" + r2(1 / Math.sqrt(p));
+      "deg;--p:" + r2(p) + ";--q:" + r2(1 / Math.sqrt(p)) +
+      ";--ox:" + r2(ox) + "px;--oy:" + r2(oy) + "px";
     if (v === curVars) return;
     cursor.style.cssText = curVars = v;
   }
 
   function frame(now) {
-    // Clamp so a background-tab stall or a late rAF timestamp can't jump.
-    const dt = Math.max(1, Math.min(now - last, 50));
+    // Clamp so a background-tab stall or a late rAF timestamp can't jump. The
+    // first frame after idle has no previous frame, so it counts as one.
+    const dt = last ? Math.max(1, Math.min(now - last, 50)) : FRAME;
     last = now;
     const steps = dt / FRAME;
 
-    // Frame-rate-independent lerp: same feel at 60 / 120 / 144 Hz.
-    const k = reduce ? 1 : 1 - Math.pow(1 - LERP, steps);
+    // The dot IS the cursor (native one is hidden), so position is locked to
+    // the pointer: no lerp, nothing trailing behind what you click. Only the
+    // smear eases, frame-rate-independent so it feels the same at 60-144 Hz.
     const ks = reduce ? 1 : 1 - Math.pow(1 - SHAPE_LERP, steps);
     const px = x;
     const py = y;
-    x += (tx - x) * k;
-    y += (ty - y) * k;
+    x = tx;
+    y = ty;
 
     // Smoothed velocity in px per 60fps frame, measured in 2D so the smear
     // reads the same whichever way the pointer travels.
@@ -114,12 +119,22 @@
       angle = (angle + d * ks) % 180;
     }
 
-    // Idle: settled on the target and unstretched, so stop the loop.
-    if (Math.hypot(tx - x, ty - y) < 0.1 && p - 1 < 0.005) {
-      x = tx;
-      y = ty;
+    // The smear grows backward only: shift the ellipse's centre against the
+    // direction of travel by the extra half-length, so its leading edge stays
+    // on the pointer and the stretch reads as a tail. The angle is mod 180, so
+    // flip the shift when it points against the velocity.
+    const a = (angle * Math.PI) / 180;
+    const ca = Math.cos(a);
+    const sa = Math.sin(a);
+    const back = (ca * vx + sa * vy < 0 ? 1 : -1) * R * (p - 1);
+    ox = ca * back;
+    oy = sa * back;
+
+    // Idle: pointer at rest and the dot unstretched, so stop the loop.
+    if (speed < 0.05 && p - 1 < 0.005) {
       vx = vy = 0;
       p = 1;
+      ox = oy = 0;
       paint();
       raf = 0;
       return;
@@ -131,7 +146,7 @@
 
   function kick() {
     if (raf || !on) return;
-    last = performance.now(); // fresh clock so the first frame after idle doesn't jump
+    last = 0; // fresh clock so the first frame after idle doesn't jump
     raf = requestAnimationFrame(frame);
   }
 
@@ -153,6 +168,7 @@
       y = ty;
       vx = vy = 0;
       p = 1;
+      ox = oy = 0;
       angle = 0;
       shown = true;
       paint();
