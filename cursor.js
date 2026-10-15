@@ -1,11 +1,11 @@
 // ---------- site-wide cursor (mouse-with-hover, 768px+ only) ----------
 //
-// A red knockout dot that follows the pointer site-wide, smears in the
-// direction of travel, grows over links, and morphs into the red "Drag" /
-// "View" bubble over the sphere / a cover. One style write per frame (seven
-// custom properties on the wrapper, read by the parts as translate / rotate /
-// scale); every size or state change is a class toggle CSS animates with
-// transform + opacity.
+// A red knockout dot locked to the pointer site-wide. It grows over links and
+// morphs into the red "Drag" / "View" bubble over the sphere / a cover. It
+// stays a circle at all times: no smear, no trailing, so it is always exactly
+// where the click lands. One style write per frame (--x / --y on the wrapper,
+// read by the parts as translate); every size or state change is a class
+// toggle CSS animates with transform + opacity.
 
 (() => {
   "use strict";
@@ -15,13 +15,9 @@
 
   const root = document.documentElement;
   const gate = window.matchMedia("(hover: hover) and (pointer: fine) and (min-width: 768px)");
-  const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const FIELD = 'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
   const LINK = 'a, button, [role="button"], [data-cursor="pointer"], label, summary';
-  const SHAPE_LERP = 0.22; // stretch + angle, per 60fps frame
-  const FRAME = 1000 / 60;
-  const R = 6; // resting dot radius in px (60px box x --s 0.2)
 
   let on = false; // gate passed + listeners attached
   let shown = false; // a real mouse move has happened since the last hide
@@ -29,25 +25,12 @@
   let down = false;
   let dragLock = false; // pointerdown on the sphere keeps "drag" until release
   let lastTarget = null;
-  let reduce = motion.matches;
 
   let raf = 0;
-  let last = 0;
-  let tx = 0;
-  let ty = 0;
   let x = 0;
   let y = 0;
-  let vx = 0;
-  let vy = 0;
-  let angle = 0;
-  let p = 1;
-  let ox = 0;
-  let oy = 0;
 
   let curClass = "";
-  let curVars = "";
-
-  const r2 = (n) => Math.round(n * 100) / 100;
 
   // Hover state is classified on pointerover (once per element change), not
   // on every pointermove.
@@ -73,81 +56,10 @@
     cursor.className = curClass = cls;
   }
 
+  // High-rate mice fire pointermove several times a frame; write once per frame.
   function paint() {
-    const v =
-      "--x:" + r2(x) + "px;--y:" + r2(y) + "px;--a:" + r2(angle) +
-      "deg;--p:" + r2(p) + ";--q:" + r2(1 / Math.sqrt(p)) +
-      ";--ox:" + r2(ox) + "px;--oy:" + r2(oy) + "px";
-    if (v === curVars) return;
-    cursor.style.cssText = curVars = v;
-  }
-
-  function frame(now) {
-    // Clamp so a background-tab stall or a late rAF timestamp can't jump. The
-    // first frame after idle has no previous frame, so it counts as one.
-    const dt = last ? Math.max(1, Math.min(now - last, 50)) : FRAME;
-    last = now;
-    const steps = dt / FRAME;
-
-    // The dot IS the cursor (native one is hidden), so position is locked to
-    // the pointer: no lerp, nothing trailing behind what you click. Only the
-    // smear eases, frame-rate-independent so it feels the same at 60-144 Hz.
-    const ks = reduce ? 1 : 1 - Math.pow(1 - SHAPE_LERP, steps);
-    const px = x;
-    const py = y;
-    x = tx;
-    y = ty;
-
-    // Smoothed velocity in px per 60fps frame, measured in 2D so the smear
-    // reads the same whichever way the pointer travels.
-    const s = 1 - Math.pow(0.75, steps);
-    vx += ((x - px) / steps - vx) * s;
-    vy += ((y - py) / steps - vy) * s;
-    const speed = Math.hypot(vx, vy);
-
-    // Over link/drag/view or under reduced motion the dot relaxes back to a
-    // circle instead of snapping to one, so mode changes never jolt it.
-    const still = reduce || dragLock || mode === "link" || mode === "drag" || mode === "view";
-    const pTarget = still ? 1 : Math.min(1 + speed * 0.04, 1.8);
-    p += (pTarget - p) * ks;
-
-    // Ease the angle along the shortest path mod 180deg: the ellipse is
-    // symmetric, so reversing direction never spins it half a turn.
-    if (!still && speed > 0.3) {
-      const target = (Math.atan2(vy, vx) * 180) / Math.PI;
-      const d = ((((target - angle) % 180) + 270) % 180) - 90;
-      angle = (angle + d * ks) % 180;
-    }
-
-    // The smear grows backward only: shift the ellipse's centre against the
-    // direction of travel by the extra half-length, so its leading edge stays
-    // on the pointer and the stretch reads as a tail. The angle is mod 180, so
-    // flip the shift when it points against the velocity.
-    const a = (angle * Math.PI) / 180;
-    const ca = Math.cos(a);
-    const sa = Math.sin(a);
-    const back = (ca * vx + sa * vy < 0 ? 1 : -1) * R * (p - 1);
-    ox = ca * back;
-    oy = sa * back;
-
-    // Idle: pointer at rest and the dot unstretched, so stop the loop.
-    if (speed < 0.05 && p - 1 < 0.005) {
-      vx = vy = 0;
-      p = 1;
-      ox = oy = 0;
-      paint();
-      raf = 0;
-      return;
-    }
-
-    paint();
-    raf = requestAnimationFrame(frame);
-  }
-
-  function kick() {
-    if (raf || !on) return;
-    last = 0; // fresh clock so the first frame after idle doesn't jump
-    raf = requestAnimationFrame(frame);
+    raf = 0;
+    cursor.style.cssText = "--x:" + x + "px;--y:" + y + "px";
   }
 
   function hide() {
@@ -160,21 +72,17 @@
       hide(); // touch / pen: never drives the dot
       return;
     }
-    tx = e.clientX;
-    ty = e.clientY;
+    x = e.clientX;
+    y = e.clientY;
     if (!shown) {
-      // Reappearing: snap to the pointer rather than gliding from the old spot.
-      x = tx;
-      y = ty;
-      vx = vy = 0;
-      p = 1;
-      ox = oy = 0;
-      angle = 0;
+      // Reappearing: place it before it fades in, so it never flashes elsewhere.
       shown = true;
+      cancelAnimationFrame(raf);
       paint();
       render();
+      return;
     }
-    kick();
+    if (!raf) raf = requestAnimationFrame(paint);
   }
 
   function onOver(e) {
@@ -253,8 +161,5 @@
 
   const sync = () => (gate.matches ? enable() : disable());
   gate.addEventListener("change", sync);
-  motion.addEventListener("change", (e) => {
-    reduce = e.matches;
-  });
   sync();
 })();
